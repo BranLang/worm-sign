@@ -50,7 +50,7 @@ describe('Reporters', () => {
 
     it('should show success message when no matches', () => {
       const output = textReporter.report([], [], projectRoot, context);
-      expect(output).toContain('No banned packages found');
+      expect(output).toContain('No wormsign detected');
     });
   });
 

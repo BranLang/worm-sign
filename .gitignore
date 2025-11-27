@@ -29,3 +29,9 @@ yarn-error.log*
 
 # Local Cache
 .worm-sign-cache.json
+
+# Temporary Test Directories
+verify_install*
+
+# Logs
+lint_output.txt

@@ -3,7 +3,8 @@
 exports[`Visual Output Snapshots should match snapshot for help command 1`] = `
 "Usage: worm-sign [options]
 
-Scan your project for packages compromised by the Shai Hulud malware.
+Scan your project for packages compromised by the Shai Hulud malware (supports
+name/version and hash detection).
 
 Options:
   -V, --version           output the version number
@@ -24,6 +25,6 @@ Options:
 `;
 
 exports[`Visual Output Snapshots should match snapshot for version command 1`] = `
-"2.0.0
+"2.0.7
 "
 `;

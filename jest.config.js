@@ -5,6 +5,7 @@ module.exports = {
   verbose: true,
   collectCoverage: true,
   coverageDirectory: 'coverage',
-  testPathIgnorePatterns: ['/node_modules/', '/fixtures/'],
+  testPathIgnorePatterns: ['/node_modules/', '/fixtures/', '/dist/'],
+  modulePathIgnorePatterns: ['<rootDir>/dist/'],
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
 };

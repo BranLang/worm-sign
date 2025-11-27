@@ -29,7 +29,7 @@ export function report(matches: ScanMatch[], warnings: string[], projectRoot: st
   }
 
   if (matches.length === 0) {
-    output += '\n' + b(c.green.bold('✅ No banned packages found.\nThe spice must flow.'), { padding: 1, borderStyle: 'round', borderColor: 'green' }) + '\n';
+    output += '\n' + b(c.green.bold('✅ No wormsign detected.\nThe spice must flow.'), { padding: 1, borderStyle: 'round', borderColor: 'green' }) + '\n';
     return output;
   }
 

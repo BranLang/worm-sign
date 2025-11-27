@@ -1,5 +1,48 @@
 # Changelog
 
+## [2.0.7] - 2025-11-27
+### Fixed
+- **Data Sources**: Fixed `koi.csv` download (was a redirect) and added missing header to `aikido.csv` to ensure correct parsing.
+
+## [2.0.6] - 2025-11-27
+### Added
+- **Data Sources**: Bundled `koi.csv` and `aikido.csv` alongside `datadog.csv`. All three sources are now checked by default during local scans.
+
+## [2.0.5] - 2025-11-27
+### Added
+- **Data Source**: Bundled `datadog.csv` (Shai Hulud 2.0 feed) so it is checked by default during local scans.
+- **Documentation**: Added attribution to DataDog Security Labs in README.
+
+## [2.0.4] - 2025-11-27
+### Fixed
+- **Packaging**: Included `sources` directory in the npm package so local scans work correctly out of the box.
+
+## [2.0.3] - 2025-11-27
+### Changed
+- **Thematic Output**: Updated success message to "No wormsign detected" to better fit the Dune theme.
+
+## [2.0.2] - 2025-11-27
+### Fixed
+- **Documentation**: Updated README and Changelog for accuracy.
+
+## [2.0.1] - 2025-11-27
+
+### Added
+- **Hash-Based Detection**: Added support for detecting compromised packages by their integrity hash (SHA-1/SHA-512) in `package-lock.json`, `yarn.lock`, and `pnpm-lock.yaml`.
+- **pnpm Support**: Added full support for parsing `pnpm-lock.yaml` files.
+- **Enhanced Heuristics**: Improved `package.json` script analysis to detect:
+    - Destructive commands (`rm -rf`)
+    - Reverse shells (`nc -e`)
+    - Inline code execution (`python -c`, `node -e`)
+    - IP addresses
+- **CI/CD**: Added GitHub Actions workflow to run tests, linting, and security audits on all branches.
+
+### Fixed
+- **Smoke Tests**: Fixed path resolution issue when running smoke tests against the built `dist` directory.
+- **Linting**: Resolved various linting errors in the codebase.
+
+
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

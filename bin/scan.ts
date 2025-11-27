@@ -186,7 +186,7 @@ npx worm-sign --fetch --source koi
 
       let reporter;
       try {
-        reporter = await import(`../src/reporters/${options.format}`);
+        reporter = await import(`../src/reporters/${options.format}.js`);
       } catch {
         console.error(chalk.red(`Error: Unknown format '${options.format}'`));
         process.exit(1);
