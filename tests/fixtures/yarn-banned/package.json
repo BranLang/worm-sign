@@ -1,0 +1,9 @@
+{
+  "name": "fixture-yarn-banned",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "yarn@1.22.19",
+  "dependencies": {
+    "@crowdstrike/commitlint": "8.1.1"
+  }
+}

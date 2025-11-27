@@ -1,0 +1,15 @@
+lockfileVersion: '9.0'
+importers:
+  .:
+    dependencies:
+      '@crowdstrike/commitlint':
+        specifier: 8.1.1
+        version: '@crowdstrike/commitlint@8.1.1'
+packages:
+  /@crowdstrike/commitlint/8.1.1:
+    resolution:
+      {
+        integrity: sha512-111,
+        tarball: https://registry.npmjs.org/@crowdstrike/commitlint/-/commitlint-8.1.1.tgz,
+      }
+    version: 8.1.1

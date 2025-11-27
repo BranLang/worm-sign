@@ -1,0 +1,51 @@
+{
+    "name": "worm-sign",
+    "version": "1.0.1",
+    "description": "A tool to scan for banned packages in your project.",
+    "main": "src/index.js",
+    "bin": {
+        "worm-sign": "bin/scan.js"
+    },
+    "scripts": {
+        "test": "jest",
+        "lint": "eslint src bin tests",
+        "format": "prettier --write src bin tests"
+    },
+    "keywords": [
+        "security",
+        "scanner",
+        "banned-packages",
+        "npm",
+        "yarn",
+        "pnpm"
+    ],
+    "files": [
+        "src",
+        "bin",
+        "vuls.csv"
+    ],
+    "author": "Branislav Lang",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/branislav-lang/banned-packages-scanner.git"
+    },
+    "bugs": {
+        "url": "https://github.com/branislav-lang/banned-packages-scanner/issues"
+    },
+    "homepage": "https://github.com/branislav-lang/banned-packages-scanner#readme",
+    "dependencies": {
+        "boxen": "^8.0.1",
+        "chalk": "^5.6.2",
+        "cli-table3": "^0.6.5",
+        "commander": "^14.0.2",
+        "gradient-string": "^3.0.0",
+        "ora": "^9.0.0"
+    },
+    "devDependencies": {
+        "eslint": "^9.39.1",
+        "globals": "^16.5.0",
+        "jest": "^30.2.0",
+        "prettier": "^3.7.1"
+    }
+}

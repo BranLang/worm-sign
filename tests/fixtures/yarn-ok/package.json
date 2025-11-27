@@ -1,0 +1,9 @@
+{
+  "name": "fixture-yarn-ok",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "yarn@1.22.19",
+  "dependencies": {
+    "left-pad": "^1.3.0"
+  }
+}

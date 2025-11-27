@@ -1,0 +1,9 @@
+{
+  "name": "fixture-pnpm-banned",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "pnpm@9.12.2",
+  "dependencies": {
+    "@crowdstrike/commitlint": "8.1.1"
+  }
+}
