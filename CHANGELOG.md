@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.8] - 2025-11-27
+### Added
+- **CLI**: Implemented `--debug` flag to enable verbose logging during scans.
+
 ## [2.0.7] - 2025-11-27
 ### Fixed
 - **Data Sources**: Fixed `koi.csv` download (was a redirect) and added missing header to `aikido.csv` to ensure correct parsing.
