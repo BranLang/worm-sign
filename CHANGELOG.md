@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.10] - 2025-11-27
+### Changed
+- **Theming**: Updated package description to be more thematic ("A prescient scanner...").
+
+## [2.0.9] - 2025-11-27
+### Changed
+- **Data Sources**: Reordered default fetch priority. Now checks `datadog` first, then `koi`, and `ibm` last.
+
+## [2.0.8] - 2025-11-27
+### Added
+- **CLI**: Implemented `--debug` flag to enable verbose logging during scans.
+
 ## [2.0.7] - 2025-11-27
 ### Fixed
 - **Data Sources**: Fixed `koi.csv` download (was a redirect) and added missing header to `aikido.csv` to ensure correct parsing.

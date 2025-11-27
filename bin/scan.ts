@@ -54,6 +54,7 @@ program
   .option('--no-cache', 'Disable caching of API responses')
   .option('--install-hook', 'Install a pre-commit hook to run worm-sign')
   .option('--dry-run', 'Run scan but always exit with 0 (useful for CI)')
+  .option('--debug', 'Enable debug logging')
   .action(async (options) => {
     // Dynamic imports for ESM libraries
     const { default: chalk } = await import('chalk');
@@ -182,7 +183,7 @@ npx worm-sign --fetch --source koi
         console.log(chalk.blue(`Scanning project at: ${projectRoot}`));
       }
 
-      const { matches, warnings } = await scanProject(projectRoot, bannedListSource);
+      const { matches, warnings } = await scanProject(projectRoot, bannedListSource, { debug: options.debug });
 
       let reporter;
       try {

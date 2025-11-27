@@ -66,17 +66,17 @@ function parseCsv(raw: string): BannedPackage[] {
 }
 
 export const SOURCES: Record<string, { url: string; type: 'json' | 'csv' }> = {
-  ibm: {
-    url: 'https://datalake-rest-api.cio-devex-data-lake.dal.app.cirrus.ibm.com/v1/ciso/vulnerable-packages',
-    type: 'json',
+  datadog: {
+    url: 'https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/shai-hulud-2.0.csv',
+    type: 'csv',
   },
   koi: {
     url: 'https://docs.google.com/spreadsheets/d/16aw6s7mWoGU7vxBciTEZSaR5HaohlBTfVirvI-PypJc/export?format=csv&gid=1289659284',
     type: 'csv',
   },
-  datadog: {
-    url: 'https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/shai-hulud-2.0.csv',
-    type: 'csv',
+  ibm: {
+    url: 'https://datalake-rest-api.cio-devex-data-lake.dal.app.cirrus.ibm.com/v1/ciso/vulnerable-packages',
+    type: 'json',
   },
 };
 
@@ -356,11 +356,18 @@ export function analyzeScripts(pkgJson: any): string[] {
  * Scans the project for banned packages.
  * @param {string} projectRoot - The root directory of the project.
  * @param {string|Array} bannedListSource - Path to the CSV file OR an array of banned package objects.
+ * @param {Object} [options] - Optional settings.
+ * @param {boolean} [options.debug] - Enable debug logging.
  * @returns {Promise<{ matches: Array<{name: string, version: string, section: string}>, warnings: string[] }>}
  */
-export async function scanProject(projectRoot: string, bannedListSource: string | BannedPackage[]) {
+export async function scanProject(projectRoot: string, bannedListSource: string | BannedPackage[], options?: { debug?: boolean }) {
+  const debug = (msg: string) => {
+    if (options?.debug) console.log(`[DEBUG] ${msg}`);
+  };
+
   // Input Validation: Path Traversal Protection
   const resolvedRoot = path.resolve(projectRoot);
+  debug(`Scanning project at: ${resolvedRoot}`);
   // Ensure resolved path is still within expected bounds if necessary, 
   // but for a CLI tool scanning a user-provided path, resolve is usually enough to handle relative paths safely.
   // We can check if it exists here.
@@ -388,6 +395,7 @@ export async function scanProject(projectRoot: string, bannedListSource: string 
   }
 
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  debug('Loaded package.json');
 
   // Heuristic Analysis
   const scriptWarnings = analyzeScripts(packageJson);
@@ -395,6 +403,7 @@ export async function scanProject(projectRoot: string, bannedListSource: string 
 
   const bannedMap = buildBannedMap(bannedEntries);
   const declaredPackages = collectPackages(packageJson);
+  debug(`Found ${declaredPackages.size} declared dependencies.`);
 
   const detection = detectPackageManager(projectRoot, packageJson);
   if (detection.warnings) {
@@ -419,6 +428,7 @@ export async function scanProject(projectRoot: string, bannedListSource: string 
     warnings: lockWarnings = [],
     success,
   } = detection.handler.loadLockPackages(detection.lockPath);
+  debug(`Loaded ${lockPackages.size} packages from lockfile: ${detection.lockPath}`);
 
   if (lockWarnings) {
     allWarnings.push(...lockWarnings);

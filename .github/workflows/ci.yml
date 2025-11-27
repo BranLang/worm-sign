@@ -40,3 +40,6 @@ jobs:
 
     - name: Security Audit
       run: npm audit
+
+    - name: Run Worm Sign
+      run: npx worm-sign --fetch --format sarif
