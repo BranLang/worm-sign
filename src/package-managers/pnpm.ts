@@ -26,7 +26,7 @@ function parsePnpmLock(content: string): Map<string, Set<string>> {
     return results;
   }
 
-  for (const [key, details] of Object.entries(parsed.packages)) {
+  for (const key of Object.keys(parsed.packages)) {
     let name: string, version: string;
 
     const cleanKey = key.startsWith('/') ? key.slice(1) : key;

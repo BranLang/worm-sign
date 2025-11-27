@@ -1,7 +1,8 @@
 import { generateSarif } from '../formatters/sarif';
 import { ScanMatch } from '../types';
 
-export function report(matches: ScanMatch[], warnings: string[], projectRoot: string) {
-  const sarif = generateSarif(matches, warnings, projectRoot);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function report(matches: ScanMatch[], warnings: string[], _projectRoot: string) {
+  const sarif = generateSarif(matches, warnings);
   return JSON.stringify(sarif, null, 2);
 }

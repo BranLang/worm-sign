@@ -3,7 +3,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { program } from 'commander';
-import { scanProject, fetchFromApi, fetchBannedPackages, SOURCES } from '../src/index';
+import { scanProject, fetchBannedPackages } from '../src/index';
 import { loadCache, saveCache } from '../src/cache';
 // @ts-ignore
 import pkg from '../package.json';
@@ -143,9 +143,8 @@ npx worm-sign --fetch --source koi
 
       let reporter;
       try {
-        // @ts-ignore
-        reporter = require(`../src/reporters/${options.format}`);
-      } catch (e) {
+        reporter = await import(`../src/reporters/${options.format}`);
+      } catch {
         console.error(chalk.red(`Error: Unknown format '${options.format}'`));
         process.exit(1);
       }

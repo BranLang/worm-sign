@@ -6,7 +6,7 @@ import { parse } from 'csv-parse/sync';
 import pnpm from './package-managers/pnpm';
 import yarn from './package-managers/yarn';
 import npm from './package-managers/npm';
-import { BannedPackage, PackageManagerHandler, LockPackageResult, ScanMatch } from './types';
+import { BannedPackage, PackageManagerHandler, ScanMatch } from './types';
 import { validateUrl } from './utils/validators';
 
 const packageManagers: PackageManagerHandler[] = [
@@ -22,7 +22,7 @@ export function loadCsv(filePath: string): BannedPackage[] {
 
 function parseCsv(raw: string): BannedPackage[] {
   try {
-    const records = parse(raw, {
+    parse(raw, {
       columns: ['name', 'version', 'reason'],
       skip_empty_lines: true,
       relax_column_count: true,

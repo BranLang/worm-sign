@@ -21,7 +21,7 @@ export function loadCache(): BannedPackage[] | null {
       return null;
     }
     return data.packages;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -33,7 +33,7 @@ export function saveCache(packages: BannedPackage[]): void {
       packages,
     };
     fs.writeFileSync(CACHE_FILE, JSON.stringify(data), 'utf8');
-  } catch (e) {
+  } catch {
     // Ignore cache write errors
   }
 }

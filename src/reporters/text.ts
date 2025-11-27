@@ -1,5 +1,4 @@
-// @ts-ignore
-import Table = require('cli-table3');
+import Table from 'cli-table3';
 import { ScanMatch } from '../types';
 
 export function report(matches: ScanMatch[], warnings: string[], projectRoot: string, context: any = {}) {

@@ -1,5 +1,6 @@
 import * as dns from 'dns';
 import * as net from 'net';
+import { URL } from 'url';
 
 export function isPrivateIp(ip: string): boolean {
     if (net.isIP(ip) === 0) return false;
@@ -42,7 +43,7 @@ export async function validateUrl(urlStr: string): Promise<void> {
     let parsed: URL;
     try {
         parsed = new URL(urlStr);
-    } catch (e) {
+    } catch {
         throw new Error(`Invalid URL: ${urlStr}`);
     }
 
