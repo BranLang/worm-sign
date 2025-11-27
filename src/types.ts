@@ -1,5 +1,6 @@
 export interface LockPackageResult {
-    packages: Map<string, Set<string>>;
+    packages: Map<string, Set<string>>; // version -> set of versions
+    packageIntegrity?: Map<string, Map<string, string>>; // name -> version -> integrity hash
     warnings: string[];
     success: boolean;
 }
@@ -18,6 +19,7 @@ export interface BannedPackage {
     version: string;
     reason?: string;
     section?: string;
+    integrity?: string; // SHA-1 or SHA-512 hash
 }
 
 export interface ScanMatch {

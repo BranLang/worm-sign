@@ -15,7 +15,16 @@ const scriptDir = __dirname;
 // Handle both ts-node (bin/scan.ts -> root is ..) and dist (dist/bin/scan.js -> root is ../..)
 let defaultDataDir = path.resolve(scriptDir, '..', '..');
 if (fs.existsSync(path.join(scriptDir, '..', 'package.json'))) {
-  defaultDataDir = path.resolve(scriptDir, '..');
+  // If package.json is in the parent of bin, then that parent is the root.
+  // This happens if we are running from root/bin/scan.ts (ts-node)
+  // BUT if we are in dist/bin, dist/package.json might not exist, so we go up two levels.
+  // However, if dist/package.json DOES exist (e.g. copied for distribution), we might want that.
+  // But here we want the source root where 'sources' dir lives.
+  // Let's check if 'sources' exists in the candidate dir.
+  const candidate = path.resolve(scriptDir, '..');
+  if (fs.existsSync(path.join(candidate, 'sources'))) {
+    defaultDataDir = candidate;
+  }
 }
 
 function resolveProjectRoot(override?: string): string {
@@ -28,12 +37,13 @@ function resolveProjectRoot(override?: string): string {
 
 function resolveDataDir(): string {
   const override = process.env.PKG_SCAN_DATA_ROOT;
-  return override ? path.resolve(override) : defaultDataDir;
+  const dir = override ? path.resolve(override) : defaultDataDir;
+  return dir;
 }
 
 program
   .name('worm-sign')
-  .description('Scan your project for packages compromised by the Shai Hulud malware.')
+  .description('Scan your project for packages compromised by the Shai Hulud malware (supports name/version and hash detection).')
   .version(version)
   .option('-f, --fetch', 'Fetch the latest banned packages from the API')
   .option('-s, --source <source>', 'Data source to fetch from (ibm, koi, datadog, all)', 'all')

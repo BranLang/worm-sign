@@ -6,6 +6,7 @@ interface NpmLockPackage {
   name?: string;
   version?: string;
   resolved?: string;
+  integrity?: string;
   dependencies?: Record<string, NpmLockPackage>;
   requires?: Record<string, NpmLockPackage>;
 }
@@ -15,38 +16,55 @@ interface NpmLockFile {
   dependencies?: Record<string, NpmLockPackage>;
 }
 
-function collectFromLock(lockJson: NpmLockFile): Map<string, Set<string>> {
-  const results = new Map<string, Set<string>>();
+function collectFromLock(lockJson: NpmLockFile): { packages: Map<string, Set<string>>, integrity: Map<string, Map<string, string>> } {
+  const packages = new Map<string, Set<string>>();
+  const integrity = new Map<string, Map<string, string>>();
 
   if (lockJson.packages) {
     for (const [pkgPath, info] of Object.entries(lockJson.packages)) {
       if (!info) continue;
       const name = info.name || inferNameFromPath(pkgPath);
       if (!name) continue;
-      const set = results.get(name) ?? new Set();
-      set.add(info.version || info.resolved || 'unknown');
-      results.set(name, set);
+
+      const set = packages.get(name) ?? new Set();
+      const ver = info.version || info.resolved || 'unknown';
+      set.add(ver);
+      packages.set(name, set);
+
+      if (info.integrity) {
+        const pkgIntegrity = integrity.get(name) ?? new Map();
+        pkgIntegrity.set(ver, info.integrity);
+        integrity.set(name, pkgIntegrity);
+      }
     }
   }
 
   if (lockJson.dependencies) {
-    traverseDeps(lockJson.dependencies, results);
+    traverseDeps(lockJson.dependencies, packages, integrity);
   }
 
-  return results;
+  return { packages, integrity };
 }
 
-function traverseDeps(deps: Record<string, NpmLockPackage>, results: Map<string, Set<string>>) {
+function traverseDeps(deps: Record<string, NpmLockPackage>, packages: Map<string, Set<string>>, integrity: Map<string, Map<string, string>>) {
   if (!deps) return;
   for (const [name, info] of Object.entries(deps)) {
-    const set = results.get(name) ?? new Set();
-    set.add(info?.version || 'unknown');
-    results.set(name, set);
+    const set = packages.get(name) ?? new Set();
+    const ver = info?.version || 'unknown';
+    set.add(ver);
+    packages.set(name, set);
+
+    if (info?.integrity) {
+      const pkgIntegrity = integrity.get(name) ?? new Map();
+      pkgIntegrity.set(ver, info.integrity);
+      integrity.set(name, pkgIntegrity);
+    }
+
     if (info?.dependencies) {
-      traverseDeps(info.dependencies, results);
+      traverseDeps(info.dependencies, packages, integrity);
     }
     if (info?.requires) {
-      traverseDeps(info.requires, results);
+      traverseDeps(info.requires, packages, integrity);
     }
   }
 }
@@ -89,8 +107,8 @@ function loadLockPackages(lockPath: string): LockPackageResult {
 
   try {
     const lockJson = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
-    packages = collectFromLock(lockJson);
-    return { packages, warnings, success: true };
+    const result = collectFromLock(lockJson);
+    return { packages: result.packages, packageIntegrity: result.integrity, warnings, success: true };
   } catch (err: any) {
     warnings.push(`Unable to parse ${path.basename(lockPath)}: ${err.message}`);
     return { packages, warnings, success: false };

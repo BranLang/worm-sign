@@ -6,6 +6,7 @@
 
 ## Features
 - **Detects Shai Hulud**: Identifies packages known to be compromised by the Shai Hulud malware.
+- **Hash-Based Detection**: Detects compromised packages by their integrity hash (SHA-1/SHA-512), catching variants even if they are renamed or version-spoofed.
 - **Premium CLI**: Beautiful, table-based output with Dune-themed visuals.
 - **Lockfile Support**: Scans `package-lock.json`, `yarn.lock`, and `pnpm-lock.yaml`.
 - **API Integration**: Fetches the latest banned list from a remote API (customizable).
@@ -59,6 +60,13 @@ worm-sign --fetch --url "https://example.com/vulns.json" --data-format json
 Expects a CSV with `name` and `version` columns (headers are ignored if they don't look like package names, but standard format is `name,version`).
 ```bash
 worm-sign --fetch --url "https://example.com/vulns.csv" --data-format csv
+```
+
+**Hash Support:**
+The CSV format also supports an optional `integrity` column (or `hash`, `shasum`). If provided, the scanner will verify the package integrity against your lockfile.
+```csv
+name,version,integrity
+safe-package,1.0.0,sha512-badhash...
 ```
 
 ### Output Formats

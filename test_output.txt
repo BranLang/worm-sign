@@ -1,0 +1,56 @@
+npm warn Unknown cli config "--coverage". This will stop working in the next major version of npm.
+
+> worm-sign@2.0.0 test
+> jest tests/unit.test.ts
+
+FAIL tests/unit.test.ts
+  Unit Tests
+    loadCsv
+      ΓêÜ should parse CSV correctly (8 ms)
+      ΓêÜ should handle empty lines and comments (3 ms)
+      ΓêÜ should parse DataDog format (package_name, package_version) (3 ms)
+    fetchFromApi
+      ΓêÜ should fetch and parse JSON (2 ms)
+      ΓêÜ should fetch and parse CSV (1 ms)
+    fetchBannedPackages
+      ΓêÜ should fetch from all sources (excluding IBM) and deduplicate (3 ms)
+      ΓêÜ should fetch from IBM when explicitly requested (1 ms)
+      ΓêÜ should handle partial failures (1 ms)
+  analyzeScripts
+    ├ù should detect suspicious patterns (2 ms)
+    ΓêÜ should not flag safe scripts (1 ms)
+
+  ΓùÅ analyzeScripts ΓÇ║ should detect suspicious patterns
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 5
+    Received length: 7
+    Received array:  ["Suspicious script detected in 'clean': Destructive command (rm -rf)", "Suspicious script detected in 'hack': Network request (curl/wget)", "Suspicious script detected in 'hack': Pipe to bash", "Suspicious script detected in 'reverse': Netcat reverse shell", "Suspicious script detected in 'reverse': IP address detected", "Suspicious script detected in 'obfuscated': Hex escape sequence (obfuscation)", "Suspicious script detected in 'ip': IP address detected"]
+
+      233 |
+      234 |     const warnings = analyzeScripts(pkgJson);
+    > 235 |     expect(warnings).toHaveLength(5);
+          |                      ^
+      236 |     expect(warnings).toEqual(expect.arrayContaining([
+      237 |       expect.stringContaining('Destructive command'),
+      238 |       expect.stringContaining('Network request'),
+
+      at Object.<anonymous> (tests/unit.test.ts:235:22)
+
+----------------------|---------|----------|---------|---------|--------------------------------------------------------------------------------------------
+File                  | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                          
+----------------------|---------|----------|---------|---------|--------------------------------------------------------------------------------------------
+All files             |   23.58 |    15.77 |   31.91 |   24.86 |                                                                                            
+ src                  |   35.96 |    26.99 |      50 |   37.85 |                                                                                            
+  index.ts            |   35.96 |    26.99 |      50 |   37.85 | 63-64,86,95-96,102-109,112-113,122-123,130,137-138,150,158-160,164,178,183,199-327,363-451 
+ src/package-managers |    7.82 |        0 |       0 |    8.33 |                                                                                            
+  npm.ts              |    5.79 |        0 |       0 |    6.34 | 20-114,123                                                                                 
+  pnpm.ts             |     9.8 |        0 |       0 |    10.2 | 7-79,89-90                                                                                 
+  yarn.ts             |    8.47 |        0 |       0 |    8.92 | 8-89,99-100                                                                                
+----------------------|---------|----------|---------|---------|--------------------------------------------------------------------------------------------
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 9 passed, 10 total
+Snapshots:   0 total
+Time:        1.698 s, estimated 2 s
+Ran all test suites matching tests/unit.test.ts.

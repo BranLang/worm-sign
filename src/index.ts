@@ -51,8 +51,9 @@ function parseCsv(raw: string): BannedPackage[] {
       const name = record['package name'] || record['name'] || record['Package Name'] || record['package_name'] || Object.values(record)[0];
       const version = record['package version'] || record['version'] || record['Package Version'] || record['package_version'] || Object.values(record)[1] || '';
       const reason = record['MSC ID'] || record['reason'] || '';
+      const integrity = record['integrity'] || record['hash'] || record['shasum'] || undefined;
 
-      return { name, version, reason };
+      return { name, version, reason, integrity };
     }).filter((p: any) => !!p.name) as BannedPackage[];
 
   } catch (e) {
@@ -213,28 +214,43 @@ function collectPackages(pkgJson: any): Map<string, { section: string; version: 
 interface BannedInfo {
   versions: Set<string>;
   wildcard: boolean;
+  hashes: Set<string>;
 }
 
 function buildBannedMap(entries: BannedPackage[]): Map<string, BannedInfo> {
   const map = new Map<string, BannedInfo>();
   for (const { name, version } of entries) {
     if (!name) continue;
-    const info = map.get(name) ?? { versions: new Set(), wildcard: false };
+    const info = map.get(name) ?? { versions: new Set(), wildcard: false, hashes: new Set() };
     const ver = version?.trim();
     if (!ver || ver === '*' || ver.toLowerCase() === 'any') {
       info.wildcard = true;
     } else {
       info.versions.add(ver);
     }
+    // @ts-ignore
+    if (entries.find(e => e.name === name && e.version === version)?.integrity) {
+      // @ts-ignore
+      info.hashes.add(entries.find(e => e.name === name && e.version === version)?.integrity);
+    }
     map.set(name, info);
   }
   return map;
 }
 
-function shouldFlag(bannedInfo: BannedInfo | undefined, version: string): boolean {
+function shouldFlag(bannedInfo: BannedInfo | undefined, version: string, integrity?: string): boolean {
   if (!bannedInfo) return false;
   if (bannedInfo.wildcard) return true;
-  return bannedInfo.versions.has(version);
+  if (bannedInfo.versions.has(version)) return true;
+  if (integrity && bannedInfo.hashes.size > 0) {
+    // Check if any banned hash matches the package integrity
+    // Integrity strings are usually "algo-hash", e.g. "sha512-..."
+    // We should check if the banned hash is contained in the integrity string
+    for (const hash of bannedInfo.hashes) {
+      if (integrity.includes(hash)) return true;
+    }
+  }
+  return false;
 }
 
 function findLockForHandler(projectRoot: string, handler: PackageManagerHandler): string | null {
@@ -311,7 +327,7 @@ function detectPackageManager(projectRoot: string, packageJson: any) {
   return { handler: null, lockPath: null, warnings };
 }
 
-function analyzeScripts(pkgJson: any): string[] {
+export function analyzeScripts(pkgJson: any): string[] {
   const warnings: string[] = [];
   const scripts = pkgJson.scripts || {};
   const SUSPICIOUS_PATTERNS = [
@@ -320,6 +336,10 @@ function analyzeScripts(pkgJson: any): string[] {
     { regex: /[A-Za-z0-9+/]{60,}={0,2}/, label: 'Potential Base64 encoded string' },
     { regex: /\\x[0-9a-fA-F]{2}/, label: 'Hex escape sequence (obfuscation)' },
     { regex: /eval\s*\(/, label: 'Use of eval()' },
+    { regex: /rm\s+(-rf|-fr)\s+[\s\S]*/, label: 'Destructive command (rm -rf)' },
+    { regex: /nc\s+.*-e\s+/, label: 'Netcat reverse shell' },
+    { regex: /(python|perl|ruby|node|sh|bash)\s+-[ce]\s+/, label: 'Inline code execution' },
+    { regex: /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/, label: 'IP address detected' },
   ];
 
   for (const [name, script] of Object.entries(scripts) as [string, string][]) {
@@ -395,6 +415,7 @@ export async function scanProject(projectRoot: string, bannedListSource: string 
 
   const {
     packages: lockPackages = new Map(),
+    packageIntegrity: lockIntegrity = new Map(),
     warnings: lockWarnings = [],
     success,
   } = detection.handler.loadLockPackages(detection.lockPath);
@@ -415,7 +436,8 @@ export async function scanProject(projectRoot: string, bannedListSource: string 
     if (!versions || versions.size === 0) continue;
 
     for (const version of versions) {
-      if (!shouldFlag(info, version)) continue;
+      const integrity = lockIntegrity.get(name)?.get(version);
+      if (!shouldFlag(info, version, integrity)) continue;
       const key = `${name}@${version}`;
       if (seen.has(key)) continue;
       seen.add(key);

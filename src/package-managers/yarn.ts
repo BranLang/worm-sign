@@ -9,8 +9,9 @@ function detectFromPackageManagerField(fieldValue: string): boolean {
   return fieldValue.startsWith('yarn');
 }
 
-function parseYarnLock(content: string): Map<string, Set<string>> {
-  const results = new Map<string, Set<string>>();
+function parseYarnLock(content: string): { packages: Map<string, Set<string>>, integrity: Map<string, Map<string, string>> } {
+  const packages = new Map<string, Set<string>>();
+  const integrity = new Map<string, Map<string, string>>();
   let parsed: any;
   try {
     const result = lockfile.parse(content);
@@ -24,7 +25,7 @@ function parseYarnLock(content: string): Map<string, Set<string>> {
   }
 
   if (!parsed) {
-    return results;
+    return { packages, integrity };
   }
 
   for (const [key, info] of Object.entries(parsed) as [string, any][]) {
@@ -40,15 +41,30 @@ function parseYarnLock(content: string): Map<string, Set<string>> {
         const lastAtDesc = descriptor.lastIndexOf('@');
         if (lastAtDesc !== -1) {
           const pkgName = descriptor.slice(0, lastAtDesc);
-          const set = results.get(pkgName) ?? new Set();
+          const set = packages.get(pkgName) ?? new Set();
           set.add(version);
-          results.set(pkgName, set);
+          packages.set(pkgName, set);
+
+          if (info.integrity || info.resolved) {
+            // Yarn 1 often puts hash in 'resolved' if 'integrity' is missing, or 'integrity' itself.
+            // We prioritize integrity, then try to extract hash from resolved url if possible (e.g. #sha1-...)
+            let hash = info.integrity;
+            if (!hash && info.resolved && info.resolved.includes('#')) {
+              hash = info.resolved.split('#')[1];
+            }
+
+            if (hash) {
+              const pkgIntegrity = integrity.get(pkgName) ?? new Map();
+              pkgIntegrity.set(version, hash);
+              integrity.set(pkgName, pkgIntegrity);
+            }
+          }
         }
       }
     }
   }
 
-  return results;
+  return { packages, integrity };
 }
 
 function loadLockPackages(lockPath: string): LockPackageResult {
@@ -62,11 +78,12 @@ function loadLockPackages(lockPath: string): LockPackageResult {
 
   try {
     const content = fs.readFileSync(lockPath, 'utf8');
-    packages = parseYarnLock(content);
+    const result = parseYarnLock(content);
+    packages = result.packages;
     if (packages.size === 0) {
       warnings.push(`No packages parsed from ${path.basename(lockPath)}; check format.`);
     }
-    return { packages, warnings, success: true };
+    return { packages, packageIntegrity: result.integrity, warnings, success: true };
   } catch (err: any) {
     warnings.push(`Unable to read ${path.basename(lockPath)}: ${err.message}`);
     return { packages, warnings, success: false };
