@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.7] - 2025-11-27
+### Fixed
+- **Data Sources**: Fixed `koi.csv` download (was a redirect) and added missing header to `aikido.csv` to ensure correct parsing.
+
 ## [2.0.6] - 2025-11-27
 ### Added
 - **Data Sources**: Bundled `koi.csv` and `aikido.csv` alongside `datadog.csv`. All three sources are now checked by default during local scans.
