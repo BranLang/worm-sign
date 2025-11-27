@@ -11,7 +11,7 @@
 - **Lockfile Support**: Scans `package-lock.json`, `yarn.lock`, and `pnpm-lock.yaml`.
 - **API Integration**: Fetches the latest banned list from a remote API (customizable).
 - **Smart Caching**: Caches API responses locally for 1 hour to improve performance.
-- **Heuristic Analysis**: Scans `package.json` scripts for suspicious patterns (e.g., `curl | bash`, base64).
+- **Heuristic Analysis**: Scans `package.json` scripts for suspicious patterns (e.g., `curl | bash`, `rm -rf`, reverse shells, obfuscated code).
 - **SARIF Output**: Generates SARIF reports for integration with GitHub Security.
 - **CI/CD Ready**: Easily integrates into GitHub Actions or other CI pipelines.
 

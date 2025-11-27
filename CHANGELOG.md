@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.0] - 2025-11-27
+
+### Added
+- **Hash-Based Detection**: Added support for detecting compromised packages by their integrity hash (SHA-1/SHA-512) in `package-lock.json`, `yarn.lock`, and `pnpm-lock.yaml`.
+- **pnpm Support**: Added full support for parsing `pnpm-lock.yaml` files.
+- **Enhanced Heuristics**: Improved `package.json` script analysis to detect:
+    - Destructive commands (`rm -rf`)
+    - Reverse shells (`nc -e`)
+    - Inline code execution (`python -c`, `node -e`)
+    - IP addresses
+- **CI/CD**: Added GitHub Actions workflow to run tests, linting, and security audits on all branches.
+
+### Fixed
+- **Smoke Tests**: Fixed path resolution issue when running smoke tests against the built `dist` directory.
+- **Linting**: Resolved various linting errors in the codebase.
+
+
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
