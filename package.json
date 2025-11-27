@@ -8,6 +8,7 @@
     },
     "scripts": {
         "test": "jest",
+        "test:smoke": "ts-node smoke_test.ts",
         "lint": "eslint src bin tests",
         "format": "prettier --write src bin tests",
         "build": "tsc",
