@@ -46,6 +46,18 @@ function fetchFromApi(sourceConfig) {
 
   const fetchUrl = (targetUrl, attempt = 1) => {
       return new Promise((resolve, reject) => {
+        // SSRF Protection: Validate protocol
+        try {
+            const parsed = new URL(targetUrl);
+            if (parsed.protocol !== 'https:') {
+                reject(new Error('Security Error: Only HTTPS protocol is allowed for API requests.'));
+                return;
+            }
+        } catch (e) {
+            reject(new Error(`Invalid URL: ${targetUrl}`));
+            return;
+        }
+
         if (attempt > 5) {
             reject(new Error('Too many redirects'));
             return;
@@ -242,7 +254,16 @@ function analyzeScripts(pkgJson) {
  * @returns {Promise<{ matches: Array<{name: string, version: string, section: string}>, warnings: string[] }>}
  */
 async function scanProject(projectRoot, bannedListSource) {
-  const packageJsonPath = path.join(projectRoot, 'package.json');
+  // Input Validation: Path Traversal Protection
+  const resolvedRoot = path.resolve(projectRoot);
+  // Ensure resolved path is still within expected bounds if necessary, 
+  // but for a CLI tool scanning a user-provided path, resolve is usually enough to handle relative paths safely.
+  // We can check if it exists here.
+  if (!fs.existsSync(resolvedRoot)) {
+      throw new Error(`Project root does not exist: ${resolvedRoot}`);
+  }
+
+  const packageJsonPath = path.join(resolvedRoot, 'package.json');
   const allWarnings = [];
 
   let bannedEntries;

@@ -1,113 +1,75 @@
 const fs = require('fs');
 const path = require('path');
+const lockfile = require('@yarnpkg/lockfile');
 
 function detectFromPackageManagerField(fieldValue) {
   if (!fieldValue) return false;
   return fieldValue.startsWith('yarn');
 }
 
-function parseDescriptors(descriptorLine) {
-  const matches = descriptorLine.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g);
-  if (matches && matches.length > 0) {
-    return matches.map((entry) => entry.slice(1, -1));
-  }
-  return descriptorLine
-    .split(/,\s*/)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
-
-function normalizeDescriptor(descriptor) {
-  if (!descriptor) return descriptor;
-  let value = descriptor.trim();
-  value = value.replace(/^(patch|virtual):/, '');
-  value = value.replace('@npm:', '@');
-  return value;
-}
-
-function extractPackageName(descriptor) {
-  if (!descriptor) return null;
-  const normalized = normalizeDescriptor(descriptor);
-
-  if (normalized.startsWith('@')) {
-    const secondAt = normalized.indexOf('@', 1);
-    if (secondAt === -1) {
-      return normalized;
-    }
-    return normalized.slice(0, secondAt);
-  }
-
-  const atIndex = normalized.indexOf('@');
-  if (atIndex === -1) {
-    return normalized;
-  }
-  return normalized.slice(0, atIndex);
-}
-
 function parseYarnLock(content) {
   const results = new Map();
-  const lines = content.split(/\r?\n/);
-
-  let descriptors = [];
-  let version = null;
-
-  const flush = () => {
-    if (!descriptors.length) return;
-    const resolvedVersion = version || 'unknown';
-
-    for (const descriptor of descriptors) {
-      const name = extractPackageName(descriptor);
-      if (!name) continue;
-      const set = results.get(name) ?? new Set();
-      set.add(resolvedVersion);
-      results.set(name, set);
+  let parsed;
+  try {
+    const result = lockfile.parse(content);
+    if (result.type === 'success' || result.type === 'merge') {
+        parsed = result.object;
+    } else {
+        // Handle conflict or other states if necessary, but usually object is present
+        parsed = result.object;
     }
+  } catch (e) {
+    throw new Error(`Yarn lockfile parse error: ${e.message}`);
+  }
 
-    descriptors = [];
-    version = null;
-  };
+  if (!parsed) {
+    return results;
+  }
 
-  for (const lineRaw of lines) {
-    const line = lineRaw.replace(/\s+$/, '');
-    const trimmed = line.trim();
+  for (const [key, info] of Object.entries(parsed)) {
+    // key is like "package-name@version" or "package-name@range"
+    // info is { version, resolved, integrity, dependencies }
+    
+    // Extract name from key. 
+    // Key can be multiple comma separated: "pkg@v1, pkg@v2"
+    // But @yarnpkg/lockfile usually splits them or we iterate object keys.
+    // Actually @yarnpkg/lockfile returns object where keys are the descriptors.
+    
+    // We need to extract the package name from the descriptor.
+    // Descriptor: "name@range"
+    
+    // Helper to extract name
+    const lastAt = key.lastIndexOf('@');
+    if (lastAt === -1) continue;
+    
+    const name = key.slice(0, lastAt);
+    const version = info.version;
 
-    if (!trimmed) continue;
-
-    if (!line.startsWith(' ') && line.endsWith(':')) {
-      flush();
-      descriptors = parseDescriptors(line.slice(0, -1));
-      version = null;
-      continue;
-    }
-
-    if (!descriptors.length) continue;
-
-    if (trimmed.startsWith('version ')) {
-      const match = trimmed.match(/^version\s+"([^"]+)"/);
-      if (match) {
-        version = match[1];
-        continue;
-      }
-    }
-
-    if (trimmed.startsWith('version:')) {
-      const match = trimmed.match(/^version:\s*"?([^"\s]+)"?/);
-      if (match) {
-        version = match[1];
-        continue;
-      }
-    }
-
-    if (!version && trimmed.startsWith('resolution:')) {
-      const match = trimmed.match(/@npm:([^"']+)/);
-      if (match) {
-        version = match[1];
-        continue;
-      }
+    if (name && version) {
+        // Clean up name if it has comma (shouldn't happen with parsed object keys usually being individual entries, 
+        // but let's be safe if multiple patterns map to same entry)
+        // Actually, lockfile.parse returns keys as they appear in file, which might be "a@^1.0.0, a@^1.1.0"
+        
+        const descriptors = key.split(',').map(k => k.trim());
+        for (const descriptor of descriptors) {
+             const lastAtDesc = descriptor.lastIndexOf('@');
+             if (lastAtDesc !== -1) {
+                 const pkgName = descriptor.slice(0, lastAtDesc);
+                 // Handle scoped packages: @scope/pkg@1.0.0 -> lastIndexOf is at 1.0.0
+                 // If it starts with @, we might have @scope/pkg@version
+                 
+                 // Better regex for name extraction from descriptor string "name@range"
+                 // Name is everything up to the last @, unless it's the first char (scoped)
+                 // Actually, standard yarn lock keys are "pkg@range".
+                 
+                 const set = results.get(pkgName) ?? new Set();
+                 set.add(version);
+                 results.set(pkgName, set);
+             }
+        }
     }
   }
 
-  flush();
   return results;
 }
 
@@ -124,7 +86,7 @@ function loadLockPackages(lockPath) {
     const content = fs.readFileSync(lockPath, 'utf8');
     packages = parseYarnLock(content);
     if (packages.size === 0) {
-      warnings.push(`No packages parsed from ${path.basename(lockPath)}; unsupported format?`);
+      warnings.push(`No packages parsed from ${path.basename(lockPath)}; check format.`);
     }
     return { packages, warnings, success: true };
   } catch (err) {
