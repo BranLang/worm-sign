@@ -1,6 +1,6 @@
 {
     "name": "worm-sign",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "A tool to scan for banned packages in your project.",
     "main": "src/index.js",
     "bin": {
@@ -28,12 +28,12 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/branislav-lang/banned-packages-scanner.git"
+        "url": "git+https://github.com/BranLang/worm-sign.git"
     },
     "bugs": {
-        "url": "https://github.com/branislav-lang/banned-packages-scanner/issues"
+        "url": "https://github.com/BranLang/worm-sign/issues"
     },
-    "homepage": "https://github.com/branislav-lang/banned-packages-scanner#readme",
+    "homepage": "https://github.com/BranLang/worm-sign#readme",
     "dependencies": {
         "boxen": "^8.0.1",
         "chalk": "^5.6.2",

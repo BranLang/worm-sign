@@ -45,7 +45,7 @@ function generateSarif(matches, warnings, projectRoot) {
         tool: {
           driver: {
             name: 'worm-sign',
-            informationUri: 'https://github.com/branislav-lang/banned-packages-scanner',
+            informationUri: 'https://github.com/BranLang/worm-sign',
             rules: [
               {
                 id: 'WS001',
