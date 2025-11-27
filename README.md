@@ -37,11 +37,13 @@ worm-sign --fetch
 
 ### Select Data Source
 You can specify the data source using the `--source` flag. Available sources:
-- `ibm` (default): IBM internal JSON API (requires VPN).
+- `all` (default): Fetches from ALL available sources and merges the results.
+- `ibm`: IBM internal JSON API (requires VPN).
 - `koi`: Koi Security live CSV feed (public).
+- `datadog`: DataDog Shai Hulud 2.0 CSV feed (public).
 
 ```bash
-worm-sign --fetch --source koi
+worm-sign --fetch --source all
 ```
 
 ### Custom Data Source
@@ -85,6 +87,13 @@ Add this to your GitHub Actions workflow:
 - name: Run Worm Sign
   run: npx worm-sign --fetch --format sarif
 ```
+
+## Acknowledgements
+The `datadog` source aggregates findings from various security research teams, including:
+- [Aikido Security](https://www.aikido.dev/blog/shai-hulud-strikes-again-hitting-zapier-ensdomains)
+- [Socket.dev](https://socket.dev/blog/shai-hulud-strikes-again-v2)
+- [GitGuardian](https://blog.gitguardian.com/shai-hulud-2/)
+- [Wiz](https://www.wiz.io/blog/shai-hulud-strikes-again)
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

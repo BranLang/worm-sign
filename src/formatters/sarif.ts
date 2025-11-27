@@ -1,4 +1,6 @@
-function generateSarif(matches, warnings, projectRoot) {
+import { ScanMatch } from '../types';
+
+export function generateSarif(matches: ScanMatch[], warnings: string[], projectRoot: string) {
   const results = matches.map((match) => ({
     ruleId: 'WS001',
     level: 'error',
@@ -85,5 +87,3 @@ function generateSarif(matches, warnings, projectRoot) {
     ],
   };
 }
-
-module.exports = { generateSarif };

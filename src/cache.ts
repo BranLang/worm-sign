@@ -1,16 +1,22 @@
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { BannedPackage } from './types';
 
 const CACHE_FILE = path.join(os.homedir(), '.worm-sign-cache.json');
 const TTL_MS = 60 * 60 * 1000; // 1 hour
 
-function loadCache() {
+interface CacheData {
+  timestamp: number;
+  packages: BannedPackage[];
+}
+
+export function loadCache(): BannedPackage[] | null {
   if (!fs.existsSync(CACHE_FILE)) {
     return null;
   }
   try {
-    const data = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')) as CacheData;
     if (Date.now() - data.timestamp > TTL_MS) {
       return null;
     }
@@ -20,9 +26,9 @@ function loadCache() {
   }
 }
 
-function saveCache(packages) {
+export function saveCache(packages: BannedPackage[]): void {
   try {
-    const data = {
+    const data: CacheData = {
       timestamp: Date.now(),
       packages,
     };
@@ -31,5 +37,3 @@ function saveCache(packages) {
     // Ignore cache write errors
   }
 }
-
-module.exports = { loadCache, saveCache };

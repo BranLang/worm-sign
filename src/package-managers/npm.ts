@@ -1,8 +1,22 @@
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
+import { LockPackageResult, PackageManagerHandler } from '../types';
 
-function collectFromLock(lockJson) {
-  const results = new Map();
+interface NpmLockPackage {
+  name?: string;
+  version?: string;
+  resolved?: string;
+  dependencies?: Record<string, NpmLockPackage>;
+  requires?: Record<string, NpmLockPackage>;
+}
+
+interface NpmLockFile {
+  packages?: Record<string, NpmLockPackage>;
+  dependencies?: Record<string, NpmLockPackage>;
+}
+
+function collectFromLock(lockJson: NpmLockFile): Map<string, Set<string>> {
+  const results = new Map<string, Set<string>>();
 
   if (lockJson.packages) {
     for (const [pkgPath, info] of Object.entries(lockJson.packages)) {
@@ -22,7 +36,7 @@ function collectFromLock(lockJson) {
   return results;
 }
 
-function traverseDeps(deps, results) {
+function traverseDeps(deps: Record<string, NpmLockPackage>, results: Map<string, Set<string>>) {
   if (!deps) return;
   for (const [name, info] of Object.entries(deps)) {
     const set = results.get(name) ?? new Set();
@@ -37,7 +51,7 @@ function traverseDeps(deps, results) {
   }
 }
 
-function inferNameFromPath(pkgPath) {
+function inferNameFromPath(pkgPath: string): string | null {
   if (!pkgPath || pkgPath === '') return null;
   const segments = pkgPath.split('node_modules/').filter(Boolean);
   if (segments.length === 0) return null;
@@ -49,12 +63,12 @@ function inferNameFromPath(pkgPath) {
   return lastSegment;
 }
 
-function detectFromPackageManagerField(fieldValue) {
+function detectFromPackageManagerField(fieldValue: string): boolean {
   if (!fieldValue) return false;
   return fieldValue.startsWith('npm');
 }
 
-function findLockFile(repoRoot, lockFiles) {
+function findLockFile(repoRoot: string, lockFiles: string[]): string | null {
   for (const fileName of lockFiles) {
     const fullPath = path.join(repoRoot, fileName);
     if (fs.existsSync(fullPath)) {
@@ -64,9 +78,9 @@ function findLockFile(repoRoot, lockFiles) {
   return null;
 }
 
-function loadLockPackages(lockPath) {
-  const warnings = [];
-  let packages = new Map();
+function loadLockPackages(lockPath: string): LockPackageResult {
+  const warnings: string[] = [];
+  let packages = new Map<string, Set<string>>();
 
   if (!fs.existsSync(lockPath)) {
     warnings.push(`Lockfile not found at ${lockPath}`);
@@ -77,17 +91,19 @@ function loadLockPackages(lockPath) {
     const lockJson = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
     packages = collectFromLock(lockJson);
     return { packages, warnings, success: true };
-  } catch (err) {
+  } catch (err: any) {
     warnings.push(`Unable to parse ${path.basename(lockPath)}: ${err.message}`);
     return { packages, warnings, success: false };
   }
 }
 
-module.exports = {
+const npmHandler: PackageManagerHandler = {
   id: 'npm',
   label: 'npm',
   lockFiles: ['package-lock.json', 'npm-shrinkwrap.json'],
   detectFromPackageManagerField,
-  findLockFile: (repoRoot) => findLockFile(repoRoot, ['package-lock.json', 'npm-shrinkwrap.json']),
+  findLockFile: (repoRoot: string) => findLockFile(repoRoot, ['package-lock.json', 'npm-shrinkwrap.json']),
   loadLockPackages,
 };
+
+export default npmHandler;

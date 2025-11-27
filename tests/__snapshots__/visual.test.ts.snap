@@ -8,7 +8,8 @@ Scan your project for packages compromised by the Shai Hulud malware.
 Options:
   -V, --version           output the version number
   -f, --fetch             Fetch the latest banned packages from the API
-  -s, --source <source>   Data source to fetch from (ibm, koi) (default: "ibm")
+  -s, --source <source>   Data source to fetch from (ibm, koi, datadog, all)
+                          (default: "all")
   -u, --url <url>         Custom API URL to fetch banned packages from
   --data-format <format>  Data format for custom URL (json, csv) (default:
                           "json")
@@ -17,11 +18,12 @@ Options:
   --format <format>       Output format (text, sarif) (default: "text")
   --no-cache              Disable caching of API responses
   --install-hook          Install a pre-commit hook to run worm-sign
+  --dry-run               Run scan but always exit with 0 (useful for CI)
   -h, --help              display help for command
 "
 `;
 
 exports[`Visual Output Snapshots should match snapshot for version command 1`] = `
-"1.0.2
+"2.0.0
 "
 `;

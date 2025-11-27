@@ -1,23 +1,23 @@
-const textReporter = require('../src/reporters/text');
-const jsonReporter = require('../src/reporters/json');
-const sarifReporter = require('../src/reporters/sarif');
-
+import * as textReporter from '../src/reporters/text';
+import * as jsonReporter from '../src/reporters/json';
+import * as sarifReporter from '../src/reporters/sarif';
+import { ScanMatch } from '../src/types';
 
 // Mock chalk and boxen
-const mockChalk = {
-  yellow: Object.assign((s) => s, { bold: (s) => s }),
-  green: Object.assign((s) => s, { bold: (s) => s }),
-  red: Object.assign((s) => s, { bold: (s) => s }),
-  bold: (s) => s,
-  dim: (s) => s,
-  cyan: (s) => s,
-  grey: (s) => s
+const mockChalk: any = {
+  yellow: Object.assign((s: string) => s, { bold: (s: string) => s }),
+  green: Object.assign((s: string) => s, { bold: (s: string) => s }),
+  red: Object.assign((s: string) => s, { bold: (s: string) => s }),
+  bold: (s: string) => s,
+  dim: (s: string) => s,
+  cyan: (s: string) => s,
+  grey: (s: string) => s
 };
-const mockBoxen = (s) => s;
+const mockBoxen = (s: string) => s;
 const context = { chalk: mockChalk, boxen: mockBoxen };
 
 describe('Reporters', () => {
-  const mockMatches = [
+  const mockMatches: ScanMatch[] = [
     { name: 'bad-package', version: '1.0.0', section: 'dependencies' },
     { name: 'worse-package', version: '2.0.0', section: 'devDependencies' },
   ];
@@ -26,7 +26,7 @@ describe('Reporters', () => {
 
   describe('JSON Reporter', () => {
     it('should output valid JSON', () => {
-      const output = jsonReporter.report(mockMatches, mockWarnings, projectRoot, context);
+      const output = jsonReporter.report(mockMatches, mockWarnings, projectRoot);
       const parsed = JSON.parse(output);
       expect(parsed).toEqual({
         matches: mockMatches,
@@ -56,7 +56,7 @@ describe('Reporters', () => {
 
   describe('SARIF Reporter', () => {
     it('should output valid SARIF JSON', () => {
-      const output = sarifReporter.report(mockMatches, mockWarnings, projectRoot, context);
+      const output = sarifReporter.report(mockMatches, mockWarnings, projectRoot);
       const parsed = JSON.parse(output);
       expect(parsed.runs[0].tool.driver.name).toBe('worm-sign');
       expect(parsed.runs[0].results).toHaveLength(3); // 2 matches + 1 warning

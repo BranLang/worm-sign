@@ -1,15 +1,18 @@
 {
     "name": "worm-sign",
-    "version": "1.0.2",
+    "version": "2.0.0",
     "description": "A tool to scan for banned packages in your project.",
-    "main": "src/index.js",
+    "main": "dist/src/index.js",
     "bin": {
-        "worm-sign": "bin/scan.js"
+        "worm-sign": "dist/bin/scan.js"
     },
     "scripts": {
         "test": "jest",
         "lint": "eslint src bin tests",
-        "format": "prettier --write src bin tests"
+        "format": "prettier --write src bin tests",
+        "build": "tsc",
+        "start": "node dist/bin/scan.js",
+        "dev": "ts-node bin/scan.ts"
     },
     "keywords": [
         "security",
@@ -20,8 +23,7 @@
         "pnpm"
     ],
     "files": [
-        "src",
-        "bin",
+        "dist",
         "vuls.csv"
     ],
     "author": "Branislav Lang",
@@ -35,17 +37,30 @@
     },
     "homepage": "https://github.com/BranLang/worm-sign#readme",
     "dependencies": {
+        "@yarnpkg/lockfile": "^1.1.0",
         "boxen": "^8.0.1",
         "chalk": "^5.6.2",
         "cli-table3": "^0.6.5",
         "commander": "^14.0.2",
+        "csv-parse": "^5.5.6",
         "gradient-string": "^3.0.0",
+        "js-yaml": "^4.1.1",
         "ora": "^9.0.0"
     },
     "devDependencies": {
+        "@types/boxen": "^2.1.0",
+        "@types/chalk": "^0.4.31",
+        "@types/gradient-string": "^1.1.6",
+        "@types/jest": "^30.0.0",
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^24.10.1",
+        "@types/ora": "^3.1.0",
         "eslint": "^9.39.1",
         "globals": "^16.5.0",
         "jest": "^30.2.0",
-        "prettier": "^3.7.1"
+        "prettier": "^3.7.1",
+        "ts-jest": "^29.4.5",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.3"
     }
 }

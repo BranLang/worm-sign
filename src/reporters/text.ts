@@ -1,27 +1,30 @@
-const Table = require('cli-table3');
+// @ts-ignore
+import Table = require('cli-table3');
+import { ScanMatch } from '../types';
 
-function report(matches, warnings, projectRoot, context = {}) {
+export function report(matches: ScanMatch[], warnings: string[], projectRoot: string, context: any = {}) {
   const { chalk, boxen } = context;
-  
-  // Fallback mocks if not provided (e.g. in tests if not mocked explicitly, though tests should provide them)
-  const c = chalk || { 
-      yellow: { bold: (s) => s }, 
-      green: { bold: (s) => s }, 
-      red: { bold: (s) => s }, 
-      bold: (s) => s, 
-      dim: (s) => s,
-      yellow: (s) => s,
-      red: (s) => s,
-      cyan: (s) => s,
-      grey: (s) => s
+
+  // Fallback mocks if not provided
+  const c = chalk || {
+    yellow: { bold: (s: string) => s },
+    green: { bold: (s: string) => s },
+    red: { bold: (s: string) => s },
+    bold: (s: string) => s,
+    dim: (s: string) => s,
+    cyan: (s: string) => s,
+    grey: (s: string) => s
   };
-  const b = boxen || ((s) => s);
+  // Handle simple color functions if they are not objects
+
+
+  const b = boxen || ((s: string) => s);
 
   let output = '';
 
   if (warnings.length > 0) {
     output += '\n' + c.yellow.bold('⚠️  Warnings:') + '\n';
-    warnings.forEach((msg) => {
+    warnings.forEach((msg: string) => {
       output += c.yellow(`  - ${msg}`) + '\n';
     });
   }
@@ -37,7 +40,7 @@ function report(matches, warnings, projectRoot, context = {}) {
     head: [c.bold('Package'), c.bold('Version'), c.bold('Location')],
     style: {
       head: [], // We handle colors manually
-      border: [], 
+      border: [],
     },
   });
 
@@ -50,8 +53,6 @@ function report(matches, warnings, projectRoot, context = {}) {
   });
 
   output += table.toString() + '\n';
-  
+
   return output;
 }
-
-module.exports = { report };
