@@ -98,6 +98,7 @@ Add this to your GitHub Actions workflow:
 
 ## Acknowledgements
 The `datadog` source aggregates findings from various security research teams, including:
+- [DataDog Security Labs](https://securitylabs.datadoghq.com/articles/shai-hulud-2.0-npm-worm/)
 - [Aikido Security](https://www.aikido.dev/blog/shai-hulud-strikes-again-hitting-zapier-ensdomains)
 - [Socket.dev](https://socket.dev/blog/shai-hulud-strikes-again-v2)
 - [GitGuardian](https://blog.gitguardian.com/shai-hulud-2/)
