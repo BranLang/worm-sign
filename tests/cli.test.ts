@@ -17,7 +17,7 @@ describe('CLI Integration', () => {
   });
 
   test('should fail with unknown source', () => {
-    const child = spawnSync('node', [scriptPath, '--fetch', '--source', 'invalid'], { encoding: 'utf8' });
+    const child = spawnSync('node', [scriptPath, '--fetch', '--source', 'invalid', '--no-cache'], { encoding: 'utf8' });
     expect(child.stderr).toContain('Unknown source');
     expect(child.status).toBe(2);
   });

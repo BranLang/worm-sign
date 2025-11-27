@@ -3,7 +3,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { program } from 'commander';
-import { scanProject, fetchBannedPackages } from '../src/index';
+import { scanProject, fetchBannedPackages, loadCsv } from '../src/index';
 import { loadCache, saveCache } from '../src/cache';
 // @ts-ignore
 import pkg from '../package.json';
@@ -12,7 +12,11 @@ const version = pkg.version;
 
 const scriptDir = __dirname;
 // Default to the bundled list in the package
-const defaultDataDir = path.resolve(scriptDir, '..', '..');
+// Handle both ts-node (bin/scan.ts -> root is ..) and dist (dist/bin/scan.js -> root is ../..)
+let defaultDataDir = path.resolve(scriptDir, '..', '..');
+if (fs.existsSync(path.join(scriptDir, '..', 'package.json'))) {
+  defaultDataDir = path.resolve(scriptDir, '..');
+}
 
 function resolveProjectRoot(override?: string): string {
   return override
@@ -120,18 +124,47 @@ npx worm-sign --fetch --source koi
 
       if (!bannedListSource) {
         const dataDir = resolveDataDir();
-        let bannedListPath = path.join(dataDir, 'vuls.csv');
+        const sourcesDir = path.join(dataDir, 'sources');
 
-        if (!fs.existsSync(bannedListPath)) {
-          bannedListPath = path.join(dataDir, 'scripts', 'DO-NOT-USE-LIST-09-21-2025.csv');
+        let allBanned: any[] = [];
+        let foundSources = false;
+
+        if (fs.existsSync(sourcesDir) && fs.statSync(sourcesDir).isDirectory()) {
+          const files = fs.readdirSync(sourcesDir).filter(f => f.endsWith('.csv'));
+          for (const file of files) {
+            const filePath = path.join(sourcesDir, file);
+            try {
+              const packages = loadCsv(filePath);
+              if (packages.length > 0) {
+                allBanned.push(...packages);
+                foundSources = true;
+                if (options.format === 'text') {
+                  console.log(chalk.blue(`Loaded ${packages.length} packages from: ${file}`));
+                }
+              }
+            } catch (e: any) {
+              console.warn(chalk.yellow(`Warning: Failed to load ${file}: ${e.message}`));
+            }
+          }
         }
 
-        if (!fs.existsSync(bannedListPath)) {
-          bannedListPath = path.join(dataDir, 'DO-NOT-USE-LIST-09-21-2025.csv');
+        // Fallback to legacy vuls.csv in root if no sources found in sources/ dir
+        if (!foundSources) {
+          const legacyPath = path.join(dataDir, 'vuls.csv');
+          if (fs.existsSync(legacyPath)) {
+            const packages = loadCsv(legacyPath);
+            allBanned.push(...packages);
+            foundSources = true;
+            if (options.format === 'text') {
+              console.log(chalk.blue(`Using local banned list: ${legacyPath}`));
+            }
+          }
         }
-        bannedListSource = bannedListPath;
-        if (options.format === 'text') {
-          console.log(chalk.blue(`Using local banned list: ${bannedListPath}`));
+
+        if (foundSources) {
+          bannedListSource = allBanned;
+        } else {
+          console.warn(chalk.yellow('Warning: No local banned lists found in sources/ directory or root.'));
         }
       }
 

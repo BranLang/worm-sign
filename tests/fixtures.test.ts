@@ -2,7 +2,7 @@ import * as path from 'path';
 import { scanProject } from '../src/index';
 
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
-const BANNED_LIST = path.join(__dirname, '..', 'vuls.csv');
+const BANNED_LIST = path.join(__dirname, '..', 'sources', 'ibm.csv');
 
 describe('Fixture Tests', () => {
   test('npm-ok should have no banned packages', async () => {
