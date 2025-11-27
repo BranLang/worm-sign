@@ -136,7 +136,7 @@ npx worm-sign --fetch --source koi
         const dataDir = resolveDataDir();
         const sourcesDir = path.join(dataDir, 'sources');
 
-        let allBanned: any[] = [];
+        const allBanned: any[] = [];
         let foundSources = false;
 
         if (fs.existsSync(sourcesDir) && fs.statSync(sourcesDir).isDirectory()) {

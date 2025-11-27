@@ -98,7 +98,7 @@ function findLockFile(repoRoot: string, lockFiles: string[]): string | null {
 
 function loadLockPackages(lockPath: string): LockPackageResult {
   const warnings: string[] = [];
-  let packages = new Map<string, Set<string>>();
+  const packages = new Map<string, Set<string>>();
 
   if (!fs.existsSync(lockPath)) {
     warnings.push(`Lockfile not found at ${lockPath}`);

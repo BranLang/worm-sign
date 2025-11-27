@@ -217,6 +217,7 @@ describe('Unit Tests', () => {
 });
 
 describe('analyzeScripts', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { analyzeScripts } = require('../src/index');
 
   test('should detect suspicious patterns', () => {
