@@ -66,17 +66,17 @@ function parseCsv(raw: string): BannedPackage[] {
 }
 
 export const SOURCES: Record<string, { url: string; type: 'json' | 'csv' }> = {
-  ibm: {
-    url: 'https://datalake-rest-api.cio-devex-data-lake.dal.app.cirrus.ibm.com/v1/ciso/vulnerable-packages',
-    type: 'json',
+  datadog: {
+    url: 'https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/shai-hulud-2.0.csv',
+    type: 'csv',
   },
   koi: {
     url: 'https://docs.google.com/spreadsheets/d/16aw6s7mWoGU7vxBciTEZSaR5HaohlBTfVirvI-PypJc/export?format=csv&gid=1289659284',
     type: 'csv',
   },
-  datadog: {
-    url: 'https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/shai-hulud-2.0.csv',
-    type: 'csv',
+  ibm: {
+    url: 'https://datalake-rest-api.cio-devex-data-lake.dal.app.cirrus.ibm.com/v1/ciso/vulnerable-packages',
+    type: 'json',
   },
 };
 

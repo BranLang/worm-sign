@@ -1,7 +1,7 @@
 {
     "name": "worm-sign",
-    "version": "2.0.8",
-    "description": "A tool to scan for banned packages in your project.",
+    "version": "2.0.10",
+    "description": "A prescient scanner to detect and banish Shai Hulud malware from your dependencies.",
     "main": "dist/src/index.js",
     "bin": {
         "worm-sign": "dist/bin/scan.js"

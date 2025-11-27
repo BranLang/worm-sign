@@ -26,6 +26,6 @@ Options:
 `;
 
 exports[`Visual Output Snapshots should match snapshot for version command 1`] = `
-"2.0.8
+"2.0.9
 "
 `;
