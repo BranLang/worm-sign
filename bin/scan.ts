@@ -161,24 +161,23 @@ npx worm-sign --fetch
              // Or we can try to load cache.
           }
 
-          const fetchedPackages = await fetchBannedPackages(sourcesToFetch);
+          const { packages: fetchedPackages, errors } = await fetchBannedPackages(sourcesToFetch);
           allBanned.push(...fetchedPackages);
           foundSources = true;
           
           if (spinner) {
-            spinner.succeed(chalk.green(`Fetched ${fetchedPackages.length} packages from remote sources.`));
+            if (errors.length > 0) {
+               spinner.warn(chalk.yellow(`Fetched ${fetchedPackages.length} packages, but some sources failed:\n${errors.map(e => '  - ' + e).join('\n')}`));
+            } else {
+               spinner.succeed(chalk.green(`Fetched ${fetchedPackages.length} packages from remote sources.`));
+            }
+          } else if (errors.length > 0) {
+             errors.forEach(e => console.warn(chalk.yellow(`Warning: ${e}`)));
           }
         } catch (error: any) {
-           // Graceful failure: if we have other sources, just warn.
+           // This catch block might not be reached anymore unless fetchBannedPackages throws unexpected error
            if (spinner) {
-             if (allBanned.length > 0) {
-               spinner.warn(chalk.yellow(`Warning: Some remote sources failed: ${error.message}. Continuing with ${allBanned.length} local packages.`));
-             } else {
-               spinner.fail(chalk.red(`Error: Failed to fetch remote sources and no local packages found: ${error.message}`));
-               // We will let it proceed to scan with empty list (which will find 0 matches) or throw?
-               // If we have 0 packages, the scan is useless.
-               // But maybe we should throw here if foundSources is false.
-             }
+              spinner.fail(chalk.red(`Error: Unexpected failure during fetch: ${error.message}`));
            }
         }
       }
