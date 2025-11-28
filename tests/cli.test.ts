@@ -17,13 +17,27 @@ describe('CLI Integration', () => {
   });
 
   test('should fail with unknown option --source', () => {
-    const child = spawnSync('node', [scriptPath, '--fetch', '--source', 'invalid', '--no-cache'], { encoding: 'utf8' });
+    const child = spawnSync('node', [scriptPath, '--fetch', '--source', 'invalid', '--no-cache'], {
+      encoding: 'utf8',
+    });
     expect(child.stderr).toContain("error: unknown option '--source'");
     expect(child.status).toBe(1);
   });
 
   test('should support custom URL and warn on failure', () => {
-    const child = spawnSync('node', [scriptPath, '--fetch', '--url', 'https://localhost:9999/bad.csv', '--data-format', 'csv', '--no-cache'], { encoding: 'utf8' });
+    const child = spawnSync(
+      'node',
+      [
+        scriptPath,
+        '--fetch',
+        '--url',
+        'https://localhost:9999/bad.csv',
+        '--data-format',
+        'csv',
+        '--no-cache',
+      ],
+      { encoding: 'utf8' },
+    );
     // It should fail to fetch the custom URL but handle it gracefully (not crash)
     // Since other sources succeed, it might not warn. We just check it doesn't crash.
     expect(child.status).not.toBe(2); // 2 is usually error/crash in our CLI

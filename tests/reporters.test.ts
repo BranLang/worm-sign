@@ -11,7 +11,7 @@ const mockChalk: any = {
   bold: (s: string) => s,
   dim: (s: string) => s,
   cyan: (s: string) => s,
-  grey: (s: string) => s
+  grey: (s: string) => s,
 };
 const mockBoxen = (s: string) => s;
 const context = { chalk: mockChalk, boxen: mockBoxen };

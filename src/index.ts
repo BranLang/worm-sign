@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import * as path from 'path';
 import * as https from 'https';
 import { IncomingMessage } from 'http';
@@ -9,11 +10,7 @@ import npm from './package-managers/npm';
 import { BannedPackage, PackageManagerHandler, ScanMatch } from './types';
 import { validateUrl } from './utils/validators';
 
-const packageManagers: PackageManagerHandler[] = [
-  pnpm,
-  yarn,
-  npm,
-];
+const packageManagers: PackageManagerHandler[] = [pnpm, yarn, npm];
 
 export function loadCsv(filePath: string): BannedPackage[] {
   const raw = fs.readFileSync(filePath, 'utf8');
@@ -25,13 +22,15 @@ export function loadJson(filePath: string): BannedPackage[] {
   try {
     const json = JSON.parse(raw);
     if (Array.isArray(json)) {
-       // Handle array of packages directly
-       return json as BannedPackage[];
+      // Handle array of packages directly
+      return json as BannedPackage[];
     }
     if (json.packages && Array.isArray(json.packages)) {
       return json.packages as BannedPackage[];
     }
-    console.warn(`Warning: JSON at ${filePath} does not contain a "packages" array or is not an array.`);
+    console.warn(
+      `Warning: JSON at ${filePath} does not contain a "packages" array or is not an array.`,
+    );
     return [];
   } catch (e: any) {
     console.warn(`Warning: Failed to parse JSON ${filePath}: ${e.message}`);
@@ -46,7 +45,7 @@ function parseCsv(raw: string): BannedPackage[] {
       skip_empty_lines: true,
       relax_column_count: true,
       trim: true,
-      from_line: 2 // Skip header assuming standard format, or we can use columns: true if header is reliable
+      from_line: 2, // Skip header assuming standard format, or we can use columns: true if header is reliable
     });
     // If columns option is used, records are objects.
     // However, the input CSV might vary.
@@ -63,19 +62,31 @@ function parseCsv(raw: string): BannedPackage[] {
       skip_empty_lines: true,
       trim: true,
       relax_column_count: true,
-      comment: '#'
+      comment: '#',
     });
 
-    return parsed.map((record: any) => {
-      // Try to find name and version fields
-      const name = record['package name'] || record['name'] || record['Package Name'] || record['package_name'] || Object.values(record)[0];
-      const version = record['package version'] || record['version'] || record['Package Version'] || record['package_version'] || Object.values(record)[1] || '';
-      const reason = record['MSC ID'] || record['reason'] || '';
-      const integrity = record['integrity'] || record['hash'] || record['shasum'] || undefined;
+    return parsed
+      .map((record: any) => {
+        // Try to find name and version fields
+        const name =
+          record['package name'] ||
+          record['name'] ||
+          record['Package Name'] ||
+          record['package_name'] ||
+          Object.values(record)[0];
+        const version =
+          record['package version'] ||
+          record['version'] ||
+          record['Package Version'] ||
+          record['package_version'] ||
+          Object.values(record)[1] ||
+          '';
+        const reason = record['MSC ID'] || record['reason'] || '';
+        const integrity = record['integrity'] || record['hash'] || record['shasum'] || undefined;
 
-      return { name, version, reason, integrity };
-    }).filter((p: any) => !!p.name) as BannedPackage[];
-
+        return { name, version, reason, integrity };
+      })
+      .filter((p: any) => !!p.name) as BannedPackage[];
   } catch (e) {
     // Fallback or rethrow?
     // If strict parsing fails, maybe try simple split?
@@ -92,7 +103,11 @@ export interface SourceConfig {
   insecure?: boolean;
 }
 
-export function fetchFromApi(sourceConfig: { url: string; type: string; insecure?: boolean }): Promise<BannedPackage[]> {
+export function fetchFromApi(sourceConfig: {
+  url: string;
+  type: string;
+  insecure?: boolean;
+}): Promise<BannedPackage[]> {
   const { url, type, insecure } = sourceConfig;
   if (!url || !type) {
     return Promise.reject(new Error('Invalid source configuration: missing url or type'));
@@ -109,13 +124,18 @@ export function fetchFromApi(sourceConfig: { url: string; type: string; insecure
       }
       const options: https.RequestOptions = {
         headers: {
-          'Accept': type === 'json' ? 'application/json' : 'text/csv',
-          'User-Agent': 'worm-sign'
+          Accept: type === 'json' ? 'application/json' : 'text/csv',
+          'User-Agent': 'worm-sign',
         },
-        rejectUnauthorized: !insecure
+        rejectUnauthorized: !insecure,
       };
       const req = https.get(targetUrl, options, (res: IncomingMessage) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        if (
+          res.statusCode &&
+          res.statusCode >= 300 &&
+          res.statusCode < 400 &&
+          res.headers.location
+        ) {
           // Follow redirect
           const redirectUrl = res.headers.location;
           if (!redirectUrl) {
@@ -123,7 +143,9 @@ export function fetchFromApi(sourceConfig: { url: string; type: string; insecure
             return;
           }
           // Recursive call will validate the new URL
-          fetchUrl(redirectUrl, attempt + 1).then(resolve).catch(reject);
+          fetchUrl(redirectUrl, attempt + 1)
+            .then(resolve)
+            .catch(reject);
           return;
         }
 
@@ -133,7 +155,7 @@ export function fetchFromApi(sourceConfig: { url: string; type: string; insecure
           return;
         }
         let data = '';
-        res.on('data', (chunk) => data += chunk);
+        res.on('data', (chunk) => (data += chunk));
         res.on('end', () => {
           try {
             if (type === 'json') {
@@ -163,7 +185,9 @@ export function fetchFromApi(sourceConfig: { url: string; type: string; insecure
   return fetchUrl(url);
 }
 
-export async function fetchBannedPackages(sources: SourceConfig[]): Promise<{ packages: BannedPackage[], errors: string[] }> {
+export async function fetchBannedPackages(
+  sources: SourceConfig[],
+): Promise<{ packages: BannedPackage[]; errors: string[] }> {
   const allPackages: BannedPackage[] = [];
   const errors: string[] = [];
 
@@ -184,7 +208,7 @@ export async function fetchBannedPackages(sources: SourceConfig[]): Promise<{ pa
 
   // Deduplicate
   const uniqueMap = new Map<string, BannedPackage>();
-  allPackages.forEach(p => {
+  allPackages.forEach((p) => {
     const key = `${p.name}@${p.version}`;
     if (!uniqueMap.has(key)) {
       uniqueMap.set(key, p);
@@ -228,16 +252,20 @@ function buildBannedMap(entries: BannedPackage[]): Map<string, BannedInfo> {
       info.versions.add(ver);
     }
     // @ts-ignore
-    if (entries.find(e => e.name === name && e.version === version)?.integrity) {
+    if (entries.find((e) => e.name === name && e.version === version)?.integrity) {
       // @ts-ignore
-      info.hashes.add(entries.find(e => e.name === name && e.version === version)?.integrity);
+      info.hashes.add(entries.find((e) => e.name === name && e.version === version)?.integrity);
     }
     map.set(name, info);
   }
   return map;
 }
 
-function shouldFlag(bannedInfo: BannedInfo | undefined, version: string, integrity?: string): boolean {
+function shouldFlag(
+  bannedInfo: BannedInfo | undefined,
+  version: string,
+  integrity?: string,
+): boolean {
   if (!bannedInfo) return false;
   if (bannedInfo.wildcard) return true;
   if (bannedInfo.versions.has(version)) return true;
@@ -339,6 +367,8 @@ export function analyzeScripts(pkgJson: any): string[] {
     { regex: /nc\s+.*-e\s+/, label: 'Netcat reverse shell' },
     { regex: /(python|perl|ruby|node|sh|bash)\s+-[ce]\s+/, label: 'Inline code execution' },
     { regex: /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/, label: 'IP address detected' },
+    { regex: /bun\.sh/, label: 'Suspicious domain (bun.sh) - associated with Shai Hulud' },
+    { regex: /node\s+setup_bun\.js/, label: 'Shai Hulud malware script (node setup_bun.js)' },
   ];
 
   for (const [name, script] of Object.entries(scripts) as [string, string][]) {
@@ -359,7 +389,11 @@ export function analyzeScripts(pkgJson: any): string[] {
  * @param {boolean} [options.debug] - Enable debug logging.
  * @returns {Promise<{ matches: Array<{name: string, version: string, section: string}>, warnings: string[] }>}
  */
-export async function scanProject(projectRoot: string, bannedListSource: string | BannedPackage[], options?: { debug?: boolean }) {
+export async function scanProject(
+  projectRoot: string,
+  bannedListSource: string | BannedPackage[],
+  options?: { debug?: boolean },
+) {
   const debug = (msg: string) => {
     if (options?.debug) console.log(`[DEBUG] ${msg}`);
   };
@@ -367,7 +401,7 @@ export async function scanProject(projectRoot: string, bannedListSource: string 
   // Input Validation: Path Traversal Protection
   const resolvedRoot = path.resolve(projectRoot);
   debug(`Scanning project at: ${resolvedRoot}`);
-  // Ensure resolved path is still within expected bounds if necessary, 
+  // Ensure resolved path is still within expected bounds if necessary,
   // but for a CLI tool scanning a user-provided path, resolve is usually enough to handle relative paths safely.
   // We can check if it exists here.
   if (!fs.existsSync(resolvedRoot)) {
@@ -399,6 +433,37 @@ export async function scanProject(projectRoot: string, bannedListSource: string 
   // Heuristic Analysis
   const scriptWarnings = analyzeScripts(packageJson);
   allWarnings.push(...scriptWarnings);
+
+  // Check for known malware files
+  const MALWARE_FILES = ['setup_bun.js', 'bun_environment.js'];
+  const KNOWN_MALWARE_HASHES = new Set([
+    'a3894003ad1d293ba96d77881ccd2071446dc3f65f434669b49b3da92421901a', // setup_bun.js
+    '62ee164b9b306250c1172583f138c9614139264f889fa99614903c12755468d0', // bun_environment.js
+    'cbb9bc5a8496243e02f3cc080efbe3e4a1430ba0671f2e43a202bf45b05479cd', // bun_environment.js
+    'f099c5d9ec417d4445a0328ac0ada9cde79fc37410914103ae9c609cbc0ee068', // bun_environment.js
+    'f1df4896244500671eb4aa63ebb48ea11cee196fafaa0e9874e17b24ac053c02', // OSINT
+    '9d59fd0bcc14b671079824c704575f201b74276238dc07a9c12a93a84195648a', // OSINT
+    'e0250076c1d2ac38777ea8f542431daf61fcbaab0ca9c196614b28065ef5b918', // OSINT
+  ]);
+
+  for (const file of MALWARE_FILES) {
+    const filePath = path.join(resolvedRoot, file);
+    if (fs.existsSync(filePath)) {
+      try {
+        const fileBuffer = fs.readFileSync(filePath);
+        const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+        if (KNOWN_MALWARE_HASHES.has(hash)) {
+          allWarnings.push(`CONFIRMED MALWARE file detected: '${file}' (Hash match: ${hash})`);
+        } else {
+          allWarnings.push(`Suspicious file detected: '${file}' (associated with Shai Hulud)`);
+        }
+      } catch {
+        allWarnings.push(
+          `Suspicious file detected: '${file}' (associated with Shai Hulud) - could not read hash`,
+        );
+      }
+    }
+  }
 
   const bannedMap = buildBannedMap(bannedEntries);
   const declaredPackages = collectPackages(packageJson);
