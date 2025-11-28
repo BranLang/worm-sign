@@ -1,70 +1,81 @@
 {
-    "name": "worm-sign",
-    "version": "2.1.6",
-    "description": "A prescient scanner to detect and banish Shai Hulud malware from your dependencies.",
-    "main": "dist/src/index.js",
-    "bin": {
-        "worm-sign": "dist/bin/scan.js"
-    },
-    "scripts": {
-        "test": "jest",
-        "test:smoke": "ts-node smoke_test.ts",
-        "lint": "eslint src bin tests",
-        "format": "prettier --write src bin tests",
-        "build": "tsc && chmod +x dist/bin/scan.js",
-        "start": "node dist/bin/scan.js",
-        "dev": "ts-node bin/scan.ts"
-    },
-    "keywords": [
-        "security",
-        "scanner",
-        "banned-packages",
-        "npm",
-        "yarn",
-        "pnpm"
+  "name": "worm-sign",
+  "version": "2.1.6",
+  "description": "A prescient scanner to detect and banish Shai Hulud malware from your dependencies.",
+  "main": "dist/src/index.js",
+  "bin": {
+    "worm-sign": "dist/bin/scan.js"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:smoke": "ts-node smoke_test.ts",
+    "lint": "eslint src bin tests",
+    "format": "prettier --write src bin tests",
+    "build": "tsc && chmod +x dist/bin/scan.js",
+    "start": "node dist/bin/scan.js",
+    "dev": "ts-node bin/scan.ts",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "security",
+    "scanner",
+    "banned-packages",
+    "npm",
+    "yarn",
+    "pnpm"
+  ],
+  "files": [
+    "dist",
+    "vuls.csv",
+    "sources"
+  ],
+  "author": "Branislav Lang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BranLang/worm-sign.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BranLang/worm-sign/issues"
+  },
+  "homepage": "https://github.com/BranLang/worm-sign#readme",
+  "dependencies": {
+    "@yarnpkg/lockfile": "^1.1.0",
+    "boxen": "^8.0.1",
+    "chalk": "^5.6.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.2",
+    "csv-parse": "^5.5.6",
+    "gradient-string": "^3.0.0",
+    "js-yaml": "^4.1.1",
+    "ora": "^8.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/boxen": "^2.1.0",
+    "@types/chalk": "^0.4.31",
+    "@types/gradient-string": "^1.1.6",
+    "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.10.1",
+    "@types/ora": "^3.1.0",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "jest": "^30.2.0",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.7.1",
+    "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.0"
+  },
+  "lint-staged": {
+    "*.{ts,js,json,md}": [
+      "prettier --write"
     ],
-    "files": [
-        "dist",
-        "vuls.csv",
-        "sources"
-    ],
-    "author": "Branislav Lang",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/BranLang/worm-sign.git"
-    },
-    "bugs": {
-        "url": "https://github.com/BranLang/worm-sign/issues"
-    },
-    "homepage": "https://github.com/BranLang/worm-sign#readme",
-    "dependencies": {
-        "@yarnpkg/lockfile": "^1.1.0",
-        "boxen": "^8.0.1",
-        "chalk": "^5.6.2",
-        "cli-table3": "^0.6.5",
-        "commander": "^14.0.2",
-        "csv-parse": "^5.5.6",
-        "gradient-string": "^3.0.0",
-        "js-yaml": "^4.1.1",
-        "ora": "^8.1.0"
-    },
-    "devDependencies": {
-        "@eslint/js": "^9.39.1",
-        "@types/boxen": "^2.1.0",
-        "@types/chalk": "^0.4.31",
-        "@types/gradient-string": "^1.1.6",
-        "@types/jest": "^30.0.0",
-        "@types/js-yaml": "^4.0.9",
-        "@types/node": "^24.10.1",
-        "@types/ora": "^3.1.0",
-        "eslint": "^9.39.1",
-        "globals": "^16.5.0",
-        "jest": "^30.2.0",
-        "prettier": "^3.7.1",
-        "ts-jest": "^29.4.5",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.9.3",
-        "typescript-eslint": "^8.48.0"
-    }
+    "*.{ts,js}": [
+      "eslint --fix"
+    ]
+  }
 }
