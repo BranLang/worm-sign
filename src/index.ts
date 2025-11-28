@@ -154,7 +154,7 @@ export function fetchFromApi(sourceConfig: { url: string; type: string }): Promi
   return fetchUrl(url);
 }
 
-export async function fetchBannedPackages(sources: SourceConfig[]): Promise<BannedPackage[]> {
+export async function fetchBannedPackages(sources: SourceConfig[]): Promise<{ packages: BannedPackage[], errors: string[] }> {
   const allPackages: BannedPackage[] = [];
   const errors: string[] = [];
 
@@ -169,7 +169,8 @@ export async function fetchBannedPackages(sources: SourceConfig[]): Promise<Bann
   }
 
   if (allPackages.length === 0 && errors.length > 0) {
-    throw new Error(errors.join('; '));
+    // If everything failed, we still return the errors, but maybe we should let the caller decide if it's fatal?
+    // The caller (CLI) will see 0 packages and N errors.
   }
 
   // Deduplicate
@@ -181,7 +182,7 @@ export async function fetchBannedPackages(sources: SourceConfig[]): Promise<Bann
     }
   });
 
-  return Array.from(uniqueMap.values());
+  return { packages: Array.from(uniqueMap.values()), errors };
 }
 
 function collectPackages(pkgJson: any): Map<string, { section: string; version: string }> {

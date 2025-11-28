@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.2] - 2025-11-28
+### Improved
+- **Error Handling**: The scanner now gracefully handles partial failures when fetching from multiple remote sources. If one source fails (e.g., a custom URL), it warns the user but continues scanning with data from other successful sources.
+- **Documentation**: Clarified custom URL usage in README, explicitly noting that `--fetch` is not required when `--url` is provided.
+
+## [2.1.1] - 2025-11-28
+### Fixed
+- **Dependencies**: Removed circular dependency on `worm-sign` itself.
+
 ## [2.1.0] - 2025-11-28
 ### Added
 - **New Sources**: Added `cobenian` (1700+ packages) and `manual-research` sources.

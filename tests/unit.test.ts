@@ -132,7 +132,7 @@ describe('Unit Tests', () => {
         { name: 'datadog', url: 'https://raw.githubusercontent.com/DataDog/list.csv', type: 'csv' as const }
       ];
 
-      const result = await fetchBannedPackages(sources);
+      const { packages: result } = await fetchBannedPackages(sources);
 
       // Expected: pkg-b@2.0.0 (koi), pkg-a@1.0.0 (datadog), pkg-c@3.0.0 (datadog)
       expect(result).toHaveLength(3);
@@ -176,7 +176,7 @@ describe('Unit Tests', () => {
         { name: 'datadog', url: 'https://raw.githubusercontent.com/DataDog/list.csv', type: 'csv' as const }
       ];
 
-      const result = await fetchBannedPackages(sources);
+      const { packages: result } = await fetchBannedPackages(sources);
 
       // Should still have pkg-c
       expect(result).toHaveLength(1);

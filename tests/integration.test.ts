@@ -24,10 +24,11 @@ describe('Integration Tests', () => {
         // Note: This requires internet access.
         let bannedPackages;
         try {
-            bannedPackages = await fetchBannedPackages([{
+            const { packages } = await fetchBannedPackages([{
                 url: 'https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/shai-hulud-2.0.csv',
                 type: 'csv'
             }]);
+            bannedPackages = packages;
         } catch (e) {
             console.warn('Skipping integration test due to network failure:', e);
             return;

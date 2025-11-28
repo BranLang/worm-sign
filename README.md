@@ -43,13 +43,14 @@ You can also fetch from a custom URL. You must specify the data format (`json` o
 **JSON Format:**
 Expects an object with a `packages` array: `{ "packages": [ { "name": "pkg", "version": "1.0.0" } ] }`.
 ```bash
-worm-sign --fetch --url "https://example.com/vulns.json" --data-format json
+worm-sign --url "https://example.com/vulns.json" --data-format json
 ```
+> **Note:** The scanner will attempt to fetch from this URL in addition to other configured sources. If the fetch fails, it will warn you but continue scanning with other available sources.
 
 **CSV Format:**
 Expects a CSV with `name` and `version` columns (headers are ignored if they don't look like package names, but standard format is `name,version`).
 ```bash
-worm-sign --fetch --url "https://example.com/vulns.csv" --data-format csv
+worm-sign --url "https://example.com/vulns.csv" --data-format csv
 ```
 
 **Hash Support:**
