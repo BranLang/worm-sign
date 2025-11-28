@@ -48,7 +48,25 @@
           ]
         }
       },
-      "results": []
+      "results": [
+        {
+          "ruleId": "WS001",
+          "level": "error",
+          "message": {
+            "text": "Package '@crowdstrike/commitlint@8.1.1' is banned (found in dependencies)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package.json",
+                  "uriBaseId": "%SRCROOT%"
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }
