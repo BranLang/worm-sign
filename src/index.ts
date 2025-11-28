@@ -20,6 +20,25 @@ export function loadCsv(filePath: string): BannedPackage[] {
   return parseCsv(raw);
 }
 
+export function loadJson(filePath: string): BannedPackage[] {
+  const raw = fs.readFileSync(filePath, 'utf8');
+  try {
+    const json = JSON.parse(raw);
+    if (Array.isArray(json)) {
+       // Handle array of packages directly
+       return json as BannedPackage[];
+    }
+    if (json.packages && Array.isArray(json.packages)) {
+      return json.packages as BannedPackage[];
+    }
+    console.warn(`Warning: JSON at ${filePath} does not contain a "packages" array or is not an array.`);
+    return [];
+  } catch (e: any) {
+    console.warn(`Warning: Failed to parse JSON ${filePath}: ${e.message}`);
+    return [];
+  }
+}
+
 function parseCsv(raw: string): BannedPackage[] {
   try {
     parse(raw, {
@@ -43,7 +62,8 @@ function parseCsv(raw: string): BannedPackage[] {
       columns: true,
       skip_empty_lines: true,
       trim: true,
-      relax_column_count: true
+      relax_column_count: true,
+      comment: '#'
     });
 
     return parsed.map((record: any) => {
@@ -65,20 +85,11 @@ function parseCsv(raw: string): BannedPackage[] {
   }
 }
 
-export const SOURCES: Record<string, { url: string; type: 'json' | 'csv' }> = {
-  datadog: {
-    url: 'https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/shai-hulud-2.0.csv',
-    type: 'csv',
-  },
-  koi: {
-    url: 'https://docs.google.com/spreadsheets/d/16aw6s7mWoGU7vxBciTEZSaR5HaohlBTfVirvI-PypJc/export?format=csv&gid=1289659284',
-    type: 'csv',
-  },
-  ibm: {
-    url: 'https://datalake-rest-api.cio-devex-data-lake.dal.app.cirrus.ibm.com/v1/ciso/vulnerable-packages',
-    type: 'json',
-  },
-};
+export interface SourceConfig {
+  url: string;
+  type: 'json' | 'csv';
+  name?: string;
+}
 
 export function fetchFromApi(sourceConfig: { url: string; type: string }): Promise<BannedPackage[]> {
   const { url, type } = sourceConfig;
@@ -143,34 +154,12 @@ export function fetchFromApi(sourceConfig: { url: string; type: string }): Promi
   return fetchUrl(url);
 }
 
-export async function fetchBannedPackages(options: { source?: string, url?: string, type?: string }): Promise<BannedPackage[]> {
-  let sourcesToFetch: { name: string, config: { url: string, type: string } }[] = [];
-
-  if (options.url) {
-    sourcesToFetch.push({ name: 'custom', config: { url: options.url, type: options.type || 'json' } });
-  } else if (options.source === 'all') {
-    sourcesToFetch = Object.entries(SOURCES)
-      .filter(([name]) => name !== 'ibm')
-      .map(([name, config]) => ({ name, config }));
-  } else {
-    const sourceKey = options.source || 'all'; // Default to all if undefined, though CLI handles default
-    if (sourceKey === 'all') {
-      sourcesToFetch = Object.entries(SOURCES)
-        .filter(([name]) => name !== 'ibm')
-        .map(([name, config]) => ({ name, config }));
-    } else {
-      const config = SOURCES[sourceKey];
-      if (!config) {
-        throw new Error(`Unknown source '${sourceKey}'. Available sources: ${Object.keys(SOURCES).join(', ')}`);
-      }
-      sourcesToFetch.push({ name: sourceKey, config });
-    }
-  }
-
+export async function fetchBannedPackages(sources: SourceConfig[]): Promise<BannedPackage[]> {
   const allPackages: BannedPackage[] = [];
   const errors: string[] = [];
 
-  for (const { name, config } of sourcesToFetch) {
+  for (const config of sources) {
+    const name = config.name || config.url;
     try {
       const pkgs = await fetchFromApi(config);
       allPackages.push(...pkgs);

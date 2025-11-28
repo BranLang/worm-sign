@@ -100,9 +100,8 @@ describe('Unit Tests', () => {
   });
 
   describe('fetchBannedPackages', () => {
-    test('should fetch from all sources (excluding IBM) and deduplicate', async () => {
+    test('should fetch from all sources and deduplicate', async () => {
       const mockResponses: Record<string, string> = {
-        'ibm': JSON.stringify({ packages: [{ name: 'pkg-ibm-only', version: '1.0.0' }] }),
         'koi': 'name,version\npkg-b,2.0.0',
         'datadog': 'package_name,package_version\npkg-a,1.0.0\npkg-c,3.0.0'
       };
@@ -117,9 +116,7 @@ describe('Unit Tests', () => {
         callback(stream);
 
         process.nextTick(() => {
-          if (url.includes('ibm')) {
-            stream.write(mockResponses['ibm']);
-          } else if (url.includes('google')) { // Koi uses google docs
+          if (url.includes('google')) { // Koi uses google docs
             stream.write(mockResponses['koi']);
           } else if (url.includes('datadog') || url.includes('github')) {
             stream.write(mockResponses['datadog']);
@@ -130,57 +127,29 @@ describe('Unit Tests', () => {
         return { on: jest.fn(), setTimeout: jest.fn(), destroy: jest.fn() };
       });
 
-      const result = await fetchBannedPackages({ source: 'all' });
+      const sources = [
+        { name: 'koi', url: 'https://docs.google.com/spreadsheets/d/KEY/export?format=csv', type: 'csv' as const },
+        { name: 'datadog', url: 'https://raw.githubusercontent.com/DataDog/list.csv', type: 'csv' as const }
+      ];
+
+      const result = await fetchBannedPackages(sources);
 
       // Expected: pkg-b@2.0.0 (koi), pkg-a@1.0.0 (datadog), pkg-c@3.0.0 (datadog)
-      // pkg-ibm-only should be excluded
       expect(result).toHaveLength(3);
       expect(result).toEqual(expect.arrayContaining([
         expect.objectContaining({ name: 'pkg-b', version: '2.0.0' }),
         expect.objectContaining({ name: 'pkg-a', version: '1.0.0' }),
         expect.objectContaining({ name: 'pkg-c', version: '3.0.0' }),
       ]));
-      expect(result).not.toEqual(expect.arrayContaining([
-        expect.objectContaining({ name: 'pkg-ibm-only', version: '1.0.0' })
-      ]));
-    });
-
-    test('should fetch from IBM when explicitly requested', async () => {
-      const mockResponses: Record<string, string> = {
-        'ibm': JSON.stringify({ packages: [{ name: 'pkg-a', version: '1.0.0' }] })
-      };
-
-      (https.get as jest.Mock).mockImplementation((url, options, callback) => {
-        const stream = new PassThrough();
-        // @ts-ignore
-        stream.statusCode = 200;
-        // @ts-ignore
-        stream.headers = {};
-
-        callback(stream);
-
-        process.nextTick(() => {
-          if (url.includes('ibm')) {
-            stream.write(mockResponses['ibm']);
-          }
-          stream.end();
-        });
-
-        return { on: jest.fn(), setTimeout: jest.fn(), destroy: jest.fn() };
-      });
-
-      const result = await fetchBannedPackages({ source: 'ibm' });
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(expect.objectContaining({ name: 'pkg-a', version: '1.0.0' }));
     });
 
     test('should handle partial failures', async () => {
       (https.get as jest.Mock).mockImplementation((url, options, callback) => {
         const stream = new PassThrough();
 
-        if (url.includes('ibm')) {
+        if (url.includes('google')) {
           // @ts-ignore
-          stream.statusCode = 500; // Fail IBM
+          stream.statusCode = 500; // Fail Koi
         } else {
           // @ts-ignore
           stream.statusCode = 200;
@@ -191,10 +160,8 @@ describe('Unit Tests', () => {
         callback(stream);
 
         process.nextTick(() => {
-          if (!url.includes('ibm')) {
-            if (url.includes('google')) {
-              stream.write('name,version\npkg-b,2.0.0');
-            } else {
+          if (!url.includes('google')) {
+            if (url.includes('datadog') || url.includes('github')) {
               stream.write('package_name,package_version\npkg-c,3.0.0');
             }
           }
@@ -204,12 +171,16 @@ describe('Unit Tests', () => {
         return { on: jest.fn(), setTimeout: jest.fn(), destroy: jest.fn() };
       });
 
-      const result = await fetchBannedPackages({ source: 'all' });
+      const sources = [
+        { name: 'koi', url: 'https://docs.google.com/spreadsheets/d/KEY/export?format=csv', type: 'csv' as const },
+        { name: 'datadog', url: 'https://raw.githubusercontent.com/DataDog/list.csv', type: 'csv' as const }
+      ];
 
-      // Should still have pkg-b and pkg-c
-      expect(result).toHaveLength(2);
+      const result = await fetchBannedPackages(sources);
+
+      // Should still have pkg-c
+      expect(result).toHaveLength(1);
       expect(result).toEqual(expect.arrayContaining([
-        expect.objectContaining({ name: 'pkg-b', version: '2.0.0' }),
         expect.objectContaining({ name: 'pkg-c', version: '3.0.0' }),
       ]));
     });

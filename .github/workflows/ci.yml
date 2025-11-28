@@ -42,4 +42,4 @@ jobs:
       run: npm audit
 
     - name: Run Worm Sign
-      run: npx worm-sign --fetch --format sarif
+      run: npx worm-sign --offline --format sarif

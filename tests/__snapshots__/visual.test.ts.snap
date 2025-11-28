@@ -9,8 +9,7 @@ name/version and hash detection).
 Options:
   -V, --version           output the version number
   -f, --fetch             Fetch the latest banned packages from the API
-  -s, --source <source>   Data source to fetch from (ibm, koi, datadog, all)
-                          (default: "all")
+  --offline               Disable fetching of remote sources
   -u, --url <url>         Custom API URL to fetch banned packages from
   --data-format <format>  Data format for custom URL (json, csv) (default:
                           "json")
