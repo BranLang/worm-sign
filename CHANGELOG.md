@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.1.5] - 2025-11-28
+### Fixed
+- **Remote Fetching**: Fixed a bug where the scanner would silently ignore non-200 HTTP responses (e.g., 404 Not Found) from custom URLs. It now correctly reports these as errors/warnings.
+
+### Added
+- **Testing**: Added a comprehensive regression test suite (`tests/readme_commands.test.ts`) that verifies all commands documented in the README to ensure documentation accuracy and CLI stability.
+
+## [2.1.4] - 2025-11-28
+### Fixed
+- **Permissions**: Fixed `Permission denied` error in CI/CD environments by ensuring the executable bit is correctly set on the CLI binary (`dist/bin/scan.js`) during the build process.
+
+## [2.1.3] - 2025-11-28
+### Documentation
+- **Enterprise Usage**: Expanded the "Enterprise Usage" section in README to provide clear instructions for using internal mirrors with the CLI (via `--offline` and `--url`) versus maintaining a fork.
+
 ## [2.1.2] - 2025-11-28
 ### Improved
 - **Error Handling**: The scanner now gracefully handles partial failures when fetching from multiple remote sources. If one source fails (e.g., a custom URL), it warns the user but continues scanning with data from other successful sources.

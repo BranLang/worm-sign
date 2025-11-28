@@ -106,10 +106,9 @@ export function fetchFromApi(sourceConfig: { url: string; type: string }): Promi
         reject(new Error('Too many redirects'));
         return;
       }
-      const req = https.get(targetUrl, { headers: { 'Accept': type === 'json' ? 'application/json' : 'text/csv' } }, (res: IncomingMessage) => {
+      const req = https.get(targetUrl, { headers: { 'Accept': type === 'json' ? 'application/json' : 'text/csv', 'User-Agent': 'worm-sign' } }, (res: IncomingMessage) => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           // Follow redirect
-          // Validate redirect URL
           const redirectUrl = res.headers.location;
           if (!redirectUrl) {
             reject(new Error('Redirect without location header'));
@@ -119,8 +118,10 @@ export function fetchFromApi(sourceConfig: { url: string; type: string }): Promi
           fetchUrl(redirectUrl, attempt + 1).then(resolve).catch(reject);
           return;
         }
-        if (res.statusCode !== 200) {
+
+        if (res.statusCode && res.statusCode !== 200) {
           reject(new Error(`API request failed with status ${res.statusCode}`));
+          res.resume(); // Consume response
           return;
         }
         let data = '';
