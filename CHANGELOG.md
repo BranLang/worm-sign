@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.1.0] - 2025-11-28
+### Added
+- **New Sources**: Added `cobenian` (1700+ packages) and `manual-research` sources.
+- **Offline Mode**: Added `--offline` flag to disable remote fetching and rely solely on bundled data.
+- **Acknowledgements**: Added credits for Cobenian, Phylum, and Truesec in README.
+
+### Changed
+- **Source Loading**: Refactored source loading to be dynamic. The scanner now automatically loads all `.csv` and `.json` files from the `sources` directory.
+- **Remote Sources**: Remote sources are now configured via JSON files in the `sources` directory instead of hardcoded in the binary.
+- **CLI**: deprecated `--source` flag. The scanner now fetches from all configured remote sources by default (if `--fetch` is used) and fails gracefully if a source is unavailable.
+- **Data Sources**: Removed hardcoded IBM datasource.
+
+### Fixed
+- **CSV Parsing**: Fixed parsing issues in `socket.csv` (non-standard format) and `cobenian.csv` (comments/headers).
+
 ## [2.0.10] - 2025-11-27
 ### Changed
 - **Theming**: Updated package description to be more thematic ("A prescient scanner...").

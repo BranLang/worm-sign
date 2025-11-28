@@ -7,7 +7,6 @@
 ## Features
 - **Detects Shai Hulud**: Identifies packages known to be compromised by the Shai Hulud malware.
 - **Hash-Based Detection**: Detects compromised packages by their integrity hash (SHA-1/SHA-512), catching variants even if they are renamed or version-spoofed.
-- **Premium CLI**: Beautiful, table-based output with Dune-themed visuals.
 - **Lockfile Support**: Scans `package-lock.json`, `yarn.lock`, and `pnpm-lock.yaml`.
 - **API Integration**: Fetches the latest banned list from a remote API (customizable).
 - **Smart Caching**: Caches API responses locally for 1 hour to improve performance.
@@ -31,21 +30,12 @@ worm-sign
 ```
 
 ### Fetch Latest Data
-Fetch the latest list of vulnerable packages from the default source (IBM internal API).
+Fetch the latest list of vulnerable packages from configured remote sources (e.g., Datadog, Koi).
 ```bash
 worm-sign --fetch
 ```
 
-### Select Data Source
-You can specify the data source using the `--source` flag. Available sources:
-- `all` (default): Fetches from ALL available sources and merges the results.
-- `ibm`: IBM internal JSON API (requires VPN).
-- `koi`: Koi Security live CSV feed (public).
-- `datadog`: DataDog Shai Hulud 2.0 CSV feed (public).
 
-```bash
-worm-sign --fetch --source all
-```
 
 ### Custom Data Source
 You can also fetch from a custom URL. You must specify the data format (`json` or `csv`).
@@ -93,16 +83,43 @@ Add this to your GitHub Actions workflow:
 
 ```yaml
 - name: Run Worm Sign
-  run: npx worm-sign --fetch --format sarif
+  run: npx worm-sign --format sarif
 ```
 
+By default, `worm-sign` will:
+1. Load all local `.csv` package lists from the `sources/` directory.
+2. Fetch updates from any remote sources configured in `sources/*.json` (e.g., Datadog, Koi).
+3. Fail the build if any banned packages are found (exit code 1).
+
+You do not need to pass `--fetch` explicitly; the scanner automatically processes all configured sources.
+
+## Enterprise Usage
+
+For large organizations or high-volume CI/CD environments, we recommend **mirroring** the data sources internally to avoid rate limiting or external dependency failures.
+
+### Option 1: Internal Mirror (Recommended)
+1. Host the `.csv` files on an internal server (e.g., Artifactory, S3).
+2. Update the `sources/*.json` files in your fork/repo to point to your internal URLs.
+
+### Option 2: Offline Mode
+If you prefer to rely solely on the bundled local CSVs (which are updated with each package release), you can disable remote fetching:
+
+```bash
+npx worm-sign --offline
+```
+
+This will only scan against the local `.csv` files found in the `sources/` directory.
+
 ## Acknowledgements
-The `datadog` source aggregates findings from various security research teams, including:
+The bundled data sources aggregate findings from various security research teams and community projects, including:
 - [DataDog Security Labs](https://securitylabs.datadoghq.com/articles/shai-hulud-2.0-npm-worm/)
 - [Aikido Security](https://www.aikido.dev/blog/shai-hulud-strikes-again-hitting-zapier-ensdomains)
 - [Socket.dev](https://socket.dev/blog/shai-hulud-strikes-again-v2)
 - [GitGuardian](https://blog.gitguardian.com/shai-hulud-2/)
 - [Wiz](https://www.wiz.io/blog/shai-hulud-strikes-again)
+- [Cobenian/shai-hulud-detect](https://github.com/Cobenian/shai-hulud-detect)
+- [Phylum](https://blog.phylum.io/)
+- [Truesec](https://www.truesec.com/hub/blog)
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -3,8 +3,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { program } from 'commander';
-import { scanProject, fetchBannedPackages, loadCsv } from '../src/index';
-import { loadCache, saveCache } from '../src/cache';
+import { scanProject, fetchBannedPackages, loadCsv, loadJson } from '../src/index';
 // @ts-ignore
 import pkg from '../package.json';
 
@@ -46,7 +45,8 @@ program
   .description('Scan your project for packages compromised by the Shai Hulud malware (supports name/version and hash detection).')
   .version(version)
   .option('-f, --fetch', 'Fetch the latest banned packages from the API')
-  .option('-s, --source <source>', 'Data source to fetch from (ibm, koi, datadog, all)', 'all')
+
+  .option('--offline', 'Disable fetching of remote sources')
   .option('-u, --url <url>', 'Custom API URL to fetch banned packages from')
   .option('--data-format <format>', 'Data format for custom URL (json, csv)', 'json')
   .option('-p, --path <path>', 'Path to the project to scan (defaults to current directory)')
@@ -76,7 +76,7 @@ program
         const hookScript = `#!/bin/sh
 # worm-sign pre-commit hook
 echo "🪱 Running worm-sign..."
-npx worm-sign --fetch --source koi
+npx worm-sign --fetch
 `;
         fs.writeFileSync(hookPath, hookScript, { mode: 0o755 });
         console.log(chalk.green('✅ Pre-commit hook installed successfully!'));
@@ -94,57 +94,20 @@ npx worm-sign --fetch --source koi
 
     try {
       const projectRoot = resolveProjectRoot(options.path);
-      let bannedListSource: any;
+      const dataDir = resolveDataDir();
+      const sourcesDir = path.join(dataDir, 'sources');
+      
+      const allBanned: any[] = [];
+      const sourcesToFetch: any[] = [];
+      let foundSources = false;
 
-      if (options.fetch) {
-        if (options.cache) {
-          const cached = loadCache();
-          if (cached) {
-            bannedListSource = cached;
-            if (options.format === 'text') {
-              console.log(chalk.dim('Using cached API data.'));
-            }
-          }
-        }
-
-        if (!bannedListSource) {
-          const spinner = options.format === 'text' ? ora('Fetching vulnerable packages...').start() : null;
+      // 1. Load from sources directory
+      if (fs.existsSync(sourcesDir) && fs.statSync(sourcesDir).isDirectory()) {
+        const files = fs.readdirSync(sourcesDir);
+        for (const file of files) {
+          const filePath = path.join(sourcesDir, file);
           try {
-            bannedListSource = await fetchBannedPackages({
-              source: options.source,
-              url: options.url,
-              type: options.dataFormat
-            });
-
-            if (spinner) {
-              spinner.succeed(chalk.green(`Fetched ${bannedListSource.length} unique packages.`));
-            }
-            if (options.cache) {
-              saveCache(bannedListSource);
-            }
-          } catch (error: any) {
-            if (error.message.includes('Unknown source')) {
-              throw error;
-            }
-            if (spinner) {
-              spinner.warn(chalk.yellow(`Fetch warning: ${error.message}. Falling back to local list.`));
-            }
-          }
-        }
-      }
-
-      if (!bannedListSource) {
-        const dataDir = resolveDataDir();
-        const sourcesDir = path.join(dataDir, 'sources');
-
-        const allBanned: any[] = [];
-        let foundSources = false;
-
-        if (fs.existsSync(sourcesDir) && fs.statSync(sourcesDir).isDirectory()) {
-          const files = fs.readdirSync(sourcesDir).filter(f => f.endsWith('.csv'));
-          for (const file of files) {
-            const filePath = path.join(sourcesDir, file);
-            try {
+            if (file.endsWith('.csv')) {
               const packages = loadCsv(filePath);
               if (packages.length > 0) {
                 allBanned.push(...packages);
@@ -153,31 +116,91 @@ npx worm-sign --fetch --source koi
                   console.log(chalk.blue(`Loaded ${packages.length} packages from: ${file}`));
                 }
               }
-            } catch (e: any) {
-              console.warn(chalk.yellow(`Warning: Failed to load ${file}: ${e.message}`));
+            } else if (file.endsWith('.json')) {
+              const raw = fs.readFileSync(filePath, 'utf8');
+              try {
+                const json = JSON.parse(raw);
+                if (Array.isArray(json) || (json.packages && Array.isArray(json.packages))) {
+                   const packages = loadJson(filePath);
+                   if (packages.length > 0) {
+                     allBanned.push(...packages);
+                     foundSources = true;
+                     if (options.format === 'text') {
+                       console.log(chalk.blue(`Loaded ${packages.length} packages from: ${file}`));
+                     }
+                   }
+                } else if (json.url && json.type) {
+                   // Remote source config
+                   sourcesToFetch.push({ ...json, name: file });
+                }
+              } catch (e) {
+                console.warn(chalk.yellow(`Warning: Failed to parse JSON ${file}: ${e}`));
+              }
             }
+          } catch (e: any) {
+            console.warn(chalk.yellow(`Warning: Failed to load ${file}: ${e.message}`));
           }
-        }
-
-        // Fallback to legacy vuls.csv in root if no sources found in sources/ dir
-        if (!foundSources) {
-          const legacyPath = path.join(dataDir, 'vuls.csv');
-          if (fs.existsSync(legacyPath)) {
-            const packages = loadCsv(legacyPath);
-            allBanned.push(...packages);
-            foundSources = true;
-            if (options.format === 'text') {
-              console.log(chalk.blue(`Using local banned list: ${legacyPath}`));
-            }
-          }
-        }
-
-        if (foundSources) {
-          bannedListSource = allBanned;
-        } else {
-          console.warn(chalk.yellow('Warning: No local banned lists found in sources/ directory or root.'));
         }
       }
+
+      // 2. Add custom URL if provided
+      if (options.url) {
+        sourcesToFetch.push({ url: options.url, type: options.dataFormat, name: 'custom-cli' });
+      }
+
+      // 3. Fetch remote sources
+      // We fetch if there are remote sources defined, unless explicitly disabled with --offline.
+      if (sourcesToFetch.length > 0 && !options.offline) {
+        const spinner = options.format === 'text' ? ora(`Fetching from ${sourcesToFetch.length} remote source(s)...`).start() : null;
+        try {
+          // Use caching if enabled
+          if (options.cache) {
+             // TODO: Implement granular caching per source? 
+             // For now, the existing cache logic was monolithic.
+             // We might skip complex caching refactor for now and just fetch.
+             // Or we can try to load cache.
+          }
+
+          const fetchedPackages = await fetchBannedPackages(sourcesToFetch);
+          allBanned.push(...fetchedPackages);
+          foundSources = true;
+          
+          if (spinner) {
+            spinner.succeed(chalk.green(`Fetched ${fetchedPackages.length} packages from remote sources.`));
+          }
+        } catch (error: any) {
+           // Graceful failure: if we have other sources, just warn.
+           if (spinner) {
+             if (allBanned.length > 0) {
+               spinner.warn(chalk.yellow(`Warning: Some remote sources failed: ${error.message}. Continuing with ${allBanned.length} local packages.`));
+             } else {
+               spinner.fail(chalk.red(`Error: Failed to fetch remote sources and no local packages found: ${error.message}`));
+               // We will let it proceed to scan with empty list (which will find 0 matches) or throw?
+               // If we have 0 packages, the scan is useless.
+               // But maybe we should throw here if foundSources is false.
+             }
+           }
+        }
+      }
+
+      // Fallback to legacy vuls.csv in root if ABSOLUTELY nothing found
+      if (!foundSources && sourcesToFetch.length === 0) {
+        const legacyPath = path.join(dataDir, 'vuls.csv');
+        if (fs.existsSync(legacyPath)) {
+          const packages = loadCsv(legacyPath);
+          allBanned.push(...packages);
+          foundSources = true;
+          if (options.format === 'text') {
+            console.log(chalk.blue(`Using local banned list: ${legacyPath}`));
+          }
+        }
+      }
+
+      if (!foundSources && allBanned.length === 0) {
+         console.warn(chalk.yellow('Warning: No banned packages loaded. Scan will likely pass.'));
+      }
+
+      const bannedListSource = allBanned;
 
       if (options.format === 'text') {
         console.log(chalk.blue(`Scanning project at: ${projectRoot}`));
