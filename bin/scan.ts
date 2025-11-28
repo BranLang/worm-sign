@@ -4,7 +4,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { program } from 'commander';
 import { scanProject, fetchBannedPackages, loadCsv, loadJson } from '../src/index';
-import { loadCache, saveCache } from '../src/cache';
 // @ts-ignore
 import pkg from '../package.json';
 
@@ -155,7 +154,6 @@ npx worm-sign --fetch
         const spinner = options.format === 'text' ? ora(`Fetching from ${sourcesToFetch.length} remote source(s)...`).start() : null;
         try {
           // Use caching if enabled
-          let cachedData: any[] = [];
           if (options.cache) {
              // TODO: Implement granular caching per source? 
              // For now, the existing cache logic was monolithic.
