@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.2.0] - 2025-11-28
+
+### Added
+
+- **Shai Hulud 2.0 Detection**: Added specific detection for Shai Hulud 2.0 malware indicators:
+  - Detects malicious files: `setup_bun.js` and `bun_environment.js`.
+  - Verifies SHA-256 hashes of these files against known malware signatures.
+  - Detects suspicious scripts: `node setup_bun.js` and downloads from `bun.sh`.
+- **Documentation**: Updated README with new detection capabilities and IBM X-Force acknowledgement.
+
 ## [2.1.7] - 2025-11-28
 
 ### Added
