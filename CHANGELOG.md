@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.1.3] - 2025-11-28
+### Documentation
+- **Enterprise Usage**: Expanded the "Enterprise Usage" section in README to provide clear instructions for using internal mirrors with the CLI (via `--offline` and `--url`) versus maintaining a fork.
+
 ## [2.1.2] - 2025-11-28
 ### Improved
 - **Error Handling**: The scanner now gracefully handles partial failures when fetching from multiple remote sources. If one source fails (e.g., a custom URL), it warns the user but continues scanning with data from other successful sources.

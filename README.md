@@ -99,8 +99,16 @@ You do not need to pass `--fetch` explicitly; the scanner automatically processe
 For large organizations or high-volume CI/CD environments, we recommend **mirroring** the data sources internally to avoid rate limiting or external dependency failures.
 
 ### Option 1: Internal Mirror (Recommended)
-1. Host the `.csv` files on an internal server (e.g., Artifactory, S3).
-2. Update the `sources/*.json` files in your fork/repo to point to your internal URLs.
+To avoid rate limiting or external dependency failures, you can host the data sources on an internal server (e.g., Artifactory, S3).
+
+**If using the npm package directly:**
+Use the `--offline` flag to disable default remote fetches, and provide your internal mirror URL via the `--url` flag:
+```bash
+npx worm-sign --offline --url "https://internal.example.com/banned-packages.csv" --data-format csv
+```
+
+**If maintaining a fork:**
+Update the `sources/*.json` files in your repository to point to your internal URLs. This allows you to distribute a pre-configured version of the scanner to your team.
 
 ### Option 2: Offline Mode
 If you prefer to rely solely on the bundled local CSVs (which are updated with each package release), you can disable remote fetching:
