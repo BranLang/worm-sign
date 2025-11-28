@@ -19,12 +19,14 @@ Options:
   --no-cache              Disable caching of API responses
   --install-hook          Install a pre-commit hook to run worm-sign
   --dry-run               Run scan but always exit with 0 (useful for CI)
+  --insecure              Disable SSL certificate verification (use with
+                          caution)
   --debug                 Enable debug logging
   -h, --help              display help for command
 "
 `;
 
 exports[`Visual Output Snapshots should match snapshot for version command 1`] = `
-"2.1.5
+"2.1.6
 "
 `;

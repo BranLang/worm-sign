@@ -76,27 +76,11 @@ describe('README Commands Audit', () => {
   test('npx worm-sign --offline --url ...', () => {
     // This is the "Internal Mirror" use case.
     // Since we are offline, it should ONLY try to fetch from the custom URL (if implemented that way)
-    // OR if --offline disables ALL fetching, then --url might be ignored?
-    // Let's check the logic. The README says: "Use the --offline flag to disable default remote fetches, and provide your internal mirror URL via the --url flag"
-    // So --offline should disable default sources, but --url should still work?
-    // Let's verify this behavior.
-    const output = runCommand('--offline --url "https://example.com/mirror.csv" --data-format csv');
-    // If it tries to fetch, it will fail (warning).
-    // If --offline kills everything, it won't even warn.
-    // Based on my code reading:
-    // if (sourcesToFetch.length > 0 && !options.offline)
-    // It seems --offline disables ALL fetching.
-    // Wait, if the README says "Use --offline ... AND provide --url", maybe the code is wrong or the docs are wrong?
-    // Let's run it and see.
-    // If the code disables ALL fetching with --offline, then the Enterprise instructions are slightly misleading or require code change.
-    // But let's test what happens.
+    const output = runCommand('--offline --url "https://this-domain-does-not-exist.test/mirror.csv" --data-format csv');
     
-    // Actually, looking at bin/scan.ts:
-    // if (sourcesToFetch.length > 0 && !options.offline)
-    // This prevents fetching if offline is true.
-    // So --url will be added to sourcesToFetch, but the fetch block won't run.
-    // So the Enterprise instructions might be technically incorrect with the current code.
-    // I will verify this in the test.
+    // It SHOULD attempt to fetch (and fail because of the dummy URL)
+    expect(output).toContain('Fetching');
+    expect(output).toContain('Failed to fetch');
     expect(output).toContain('No wormsign detected');
   });
 });

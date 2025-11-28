@@ -89,10 +89,11 @@ export interface SourceConfig {
   url: string;
   type: 'json' | 'csv';
   name?: string;
+  insecure?: boolean;
 }
 
-export function fetchFromApi(sourceConfig: { url: string; type: string }): Promise<BannedPackage[]> {
-  const { url, type } = sourceConfig;
+export function fetchFromApi(sourceConfig: { url: string; type: string; insecure?: boolean }): Promise<BannedPackage[]> {
+  const { url, type, insecure } = sourceConfig;
   if (!url || !type) {
     return Promise.reject(new Error('Invalid source configuration: missing url or type'));
   }
@@ -106,7 +107,14 @@ export function fetchFromApi(sourceConfig: { url: string; type: string }): Promi
         reject(new Error('Too many redirects'));
         return;
       }
-      const req = https.get(targetUrl, { headers: { 'Accept': type === 'json' ? 'application/json' : 'text/csv', 'User-Agent': 'worm-sign' } }, (res: IncomingMessage) => {
+      const options: https.RequestOptions = {
+        headers: {
+          'Accept': type === 'json' ? 'application/json' : 'text/csv',
+          'User-Agent': 'worm-sign'
+        },
+        rejectUnauthorized: !insecure
+      };
+      const req = https.get(targetUrl, options, (res: IncomingMessage) => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           // Follow redirect
           const redirectUrl = res.headers.location;
