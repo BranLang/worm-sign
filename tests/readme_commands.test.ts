@@ -8,6 +8,7 @@ function runCommand(args: string) {
     console.log(`Running: node ${scanBin} ${args}`);
     const out = execSync(`node ${scanBin} ${args} 2>&1`, { encoding: 'utf8', stdio: 'pipe' });
     // Strip ANSI codes (more robust regex)
+    // eslint-disable-next-line no-control-regex
     return out.replace(/\u001b\[[0-9;]*m/g, '');
   } catch (error: any) {
     // If the command fails (exit code != 0), return the stdout/stderr so we can inspect it
