@@ -102,9 +102,22 @@ For large organizations or high-volume CI/CD environments, we recommend **mirror
 To avoid rate limiting or external dependency failures, you can host the data sources on an internal server (e.g., Artifactory, S3).
 
 **If using the npm package directly:**
-Use the `--offline` flag to disable default remote fetches, and provide your internal mirror URL via the `--url` flag:
+Use the `--offline` flag to disable default remote fetches, and provide your internal mirror URL via the `--url` flag.
+
+**CSV Example:**
 ```bash
 npx worm-sign --offline --url "https://internal.example.com/banned-packages.csv" --data-format csv
+```
+
+**JSON Example:**
+```bash
+npx worm-sign --offline --url "https://internal.example.com/banned-packages.json" --data-format json
+```
+
+**Self-Signed Certificates:**
+If your internal server uses a self-signed certificate, use the `--insecure` flag to bypass SSL verification:
+```bash
+npx worm-sign --offline --insecure --url "https://internal.example.com/banned-packages.json" --data-format json
 ```
 
 **If maintaining a fork:**

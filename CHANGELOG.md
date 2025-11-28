@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.6] - 2025-11-28
+### Fixed
+- **Enterprise Usage**: Fixed a bug where `--offline` prevented fetching from a custom `--url`. Now, `--offline` only disables default remote sources, allowing custom internal mirrors to be used as intended.
+
+### Added
+- **SSL**: Added `--insecure` flag to bypass SSL certificate verification for internal servers with self-signed certificates.
+
 ## [2.1.5] - 2025-11-28
 ### Fixed
 - **Remote Fetching**: Fixed a bug where the scanner would silently ignore non-200 HTTP responses (e.g., 404 Not Found) from custom URLs. It now correctly reports these as errors/warnings.

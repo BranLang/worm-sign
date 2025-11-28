@@ -54,6 +54,7 @@ program
   .option('--no-cache', 'Disable caching of API responses')
   .option('--install-hook', 'Install a pre-commit hook to run worm-sign')
   .option('--dry-run', 'Run scan but always exit with 0 (useful for CI)')
+  .option('--insecure', 'Disable SSL certificate verification (use with caution)')
   .option('--debug', 'Enable debug logging')
   .action(async (options) => {
     // Dynamic imports for ESM libraries
@@ -131,7 +132,9 @@ npx worm-sign --fetch
                    }
                 } else if (json.url && json.type) {
                    // Remote source config
-                   sourcesToFetch.push({ ...json, name: file });
+                   if (!options.offline) {
+                     sourcesToFetch.push({ ...json, name: file });
+                   }
                 }
               } catch (e) {
                 console.warn(chalk.yellow(`Warning: Failed to parse JSON ${file}: ${e}`));
@@ -145,12 +148,14 @@ npx worm-sign --fetch
 
       // 2. Add custom URL if provided
       if (options.url) {
-        sourcesToFetch.push({ url: options.url, type: options.dataFormat, name: 'custom-cli' });
+        sourcesToFetch.push({ url: options.url, type: options.dataFormat, name: 'custom-cli', insecure: options.insecure });
       }
 
       // 3. Fetch remote sources
-      // We fetch if there are remote sources defined, unless explicitly disabled with --offline.
-      if (sourcesToFetch.length > 0 && !options.offline) {
+      // We fetch if there are remote sources defined.
+      // Note: Default remote sources are skipped above if --offline is set,
+      // but custom --url is always added to sourcesToFetch.
+      if (sourcesToFetch.length > 0) {
         const spinner = options.format === 'text' ? ora(`Fetching from ${sourcesToFetch.length} remote source(s)...`).start() : null;
         try {
           // Use caching if enabled
