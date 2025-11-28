@@ -14,7 +14,9 @@ function runCommand(args: string) {
     // If the command fails (exit code != 0), return the stdout/stderr so we can inspect it
     // Some commands might fail if they find vulnerabilities, but in this repo they shouldn't.
     // If they do fail, we want to know why.
-    throw new Error(`Command failed: node ${scanBin} ${args}\nOutput: ${error.stdout}\nError: ${error.stderr}`);
+    throw new Error(
+      `Command failed: node ${scanBin} ${args}\nOutput: ${error.stdout}\nError: ${error.stderr}`,
+    );
   }
 }
 
@@ -38,14 +40,18 @@ describe('README Commands Audit', () => {
     // We use a dummy URL that will fail, but thanks to graceful handling, it should warn and pass
     // or we can use a real one if we have a stable one.
     // Let's use a non-existent one to test graceful failure which is also documented.
-    const output = runCommand('--url "https://this-domain-does-not-exist.test/vulns.json" --data-format json');
+    const output = runCommand(
+      '--url "https://this-domain-does-not-exist.test/vulns.json" --data-format json',
+    );
     expect(output).toContain('Failed to fetch'); // Should warn about fetch failure
     expect(output).toContain('No wormsign detected'); // But still succeed with local sources
   });
 
   // 4. Custom Data Source (CSV)
   test('worm-sign --url ... --data-format csv', () => {
-    const output = runCommand('--url "https://this-domain-does-not-exist.test/vulns.csv" --data-format csv');
+    const output = runCommand(
+      '--url "https://this-domain-does-not-exist.test/vulns.csv" --data-format csv',
+    );
     expect(output).toContain('Failed to fetch');
     expect(output).toContain('No wormsign detected');
   });
@@ -76,8 +82,10 @@ describe('README Commands Audit', () => {
   test('npx worm-sign --offline --url ...', () => {
     // This is the "Internal Mirror" use case.
     // Since we are offline, it should ONLY try to fetch from the custom URL (if implemented that way)
-    const output = runCommand('--offline --url "https://this-domain-does-not-exist.test/mirror.csv" --data-format csv');
-    
+    const output = runCommand(
+      '--offline --url "https://this-domain-does-not-exist.test/mirror.csv" --data-format csv',
+    );
+
     // It SHOULD attempt to fetch (and fail because of the dummy URL)
     expect(output).toContain('Fetching');
     expect(output).toContain('Failed to fetch');

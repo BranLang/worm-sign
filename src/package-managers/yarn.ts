@@ -9,7 +9,10 @@ function detectFromPackageManagerField(fieldValue: string): boolean {
   return fieldValue.startsWith('yarn');
 }
 
-function parseYarnLock(content: string): { packages: Map<string, Set<string>>, integrity: Map<string, Map<string, string>> } {
+function parseYarnLock(content: string): {
+  packages: Map<string, Set<string>>;
+  integrity: Map<string, Map<string, string>>;
+} {
   const packages = new Map<string, Set<string>>();
   const integrity = new Map<string, Map<string, string>>();
   let parsed: any;
@@ -36,7 +39,7 @@ function parseYarnLock(content: string): { packages: Map<string, Set<string>>, i
     const version = info.version;
 
     if (name && version) {
-      const descriptors = key.split(',').map(k => k.trim());
+      const descriptors = key.split(',').map((k) => k.trim());
       for (const descriptor of descriptors) {
         const lastAtDesc = descriptor.lastIndexOf('@');
         if (lastAtDesc !== -1) {

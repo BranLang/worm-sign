@@ -40,4 +40,17 @@ describe('Fixture Tests', () => {
     const { matches } = await scanProject(projectRoot, BANNED_LIST);
     expect(matches.length).toBeGreaterThan(0);
   });
+  test('shai-hulud-files should detect malicious files and scripts', async () => {
+    const fixturePath = path.join(FIXTURES_DIR, 'shai-hulud-files');
+    const { warnings } = await scanProject(fixturePath, []);
+    expect(warnings).toContain(
+      "Suspicious file detected: 'setup_bun.js' (associated with Shai Hulud)",
+    );
+    expect(warnings).toContain(
+      "Suspicious file detected: 'bun_environment.js' (associated with Shai Hulud)",
+    );
+    expect(warnings).toContain(
+      "Suspicious script detected in 'preinstall': Shai Hulud malware script (node setup_bun.js)",
+    );
+  });
 });

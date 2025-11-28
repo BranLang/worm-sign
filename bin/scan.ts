@@ -42,7 +42,9 @@ function resolveDataDir(): string {
 
 program
   .name('worm-sign')
-  .description('Scan your project for packages compromised by the Shai Hulud malware (supports name/version and hash detection).')
+  .description(
+    'Scan your project for packages compromised by the Shai Hulud malware (supports name/version and hash detection).',
+  )
   .version(version)
   .option('-f, --fetch', 'Fetch the latest banned packages from the API')
 
@@ -70,7 +72,9 @@ program
       try {
         const hooksDir = path.join(process.cwd(), '.git', 'hooks');
         if (!fs.existsSync(hooksDir)) {
-          console.error(chalk.red('Error: .git/hooks directory not found. Is this a git repository?'));
+          console.error(
+            chalk.red('Error: .git/hooks directory not found. Is this a git repository?'),
+          );
           process.exit(1);
         }
         const hookPath = path.join(hooksDir, 'pre-commit');
@@ -90,14 +94,22 @@ npx worm-sign --fetch
     }
 
     if (options.format === 'text') {
-      console.log(boxen(duneGradient('WORM SIGN\nShai Hulud Scanner'), { padding: 1, borderStyle: 'round', borderColor: 'yellow', title: 'v' + version, titleAlignment: 'right' }));
+      console.log(
+        boxen(duneGradient('WORM SIGN\nShai Hulud Scanner'), {
+          padding: 1,
+          borderStyle: 'round',
+          borderColor: 'yellow',
+          title: 'v' + version,
+          titleAlignment: 'right',
+        }),
+      );
     }
 
     try {
       const projectRoot = resolveProjectRoot(options.path);
       const dataDir = resolveDataDir();
       const sourcesDir = path.join(dataDir, 'sources');
-      
+
       const allBanned: any[] = [];
       const sourcesToFetch: any[] = [];
       let foundSources = false;
@@ -122,19 +134,19 @@ npx worm-sign --fetch
               try {
                 const json = JSON.parse(raw);
                 if (Array.isArray(json) || (json.packages && Array.isArray(json.packages))) {
-                   const packages = loadJson(filePath);
-                   if (packages.length > 0) {
-                     allBanned.push(...packages);
-                     foundSources = true;
-                     if (options.format === 'text') {
-                       console.log(chalk.blue(`Loaded ${packages.length} packages from: ${file}`));
-                     }
-                   }
+                  const packages = loadJson(filePath);
+                  if (packages.length > 0) {
+                    allBanned.push(...packages);
+                    foundSources = true;
+                    if (options.format === 'text') {
+                      console.log(chalk.blue(`Loaded ${packages.length} packages from: ${file}`));
+                    }
+                  }
                 } else if (json.url && json.type) {
-                   // Remote source config
-                   if (!options.offline) {
-                     sourcesToFetch.push({ ...json, name: file });
-                   }
+                  // Remote source config
+                  if (!options.offline) {
+                    sourcesToFetch.push({ ...json, name: file });
+                  }
                 }
               } catch (e) {
                 console.warn(chalk.yellow(`Warning: Failed to parse JSON ${file}: ${e}`));
@@ -148,7 +160,12 @@ npx worm-sign --fetch
 
       // 2. Add custom URL if provided
       if (options.url) {
-        sourcesToFetch.push({ url: options.url, type: options.dataFormat, name: 'custom-cli', insecure: options.insecure });
+        sourcesToFetch.push({
+          url: options.url,
+          type: options.dataFormat,
+          name: 'custom-cli',
+          insecure: options.insecure,
+        });
       }
 
       // 3. Fetch remote sources
@@ -156,34 +173,43 @@ npx worm-sign --fetch
       // Note: Default remote sources are skipped above if --offline is set,
       // but custom --url is always added to sourcesToFetch.
       if (sourcesToFetch.length > 0) {
-        const spinner = options.format === 'text' ? ora(`Fetching from ${sourcesToFetch.length} remote source(s)...`).start() : null;
+        const spinner =
+          options.format === 'text'
+            ? ora(`Fetching from ${sourcesToFetch.length} remote source(s)...`).start()
+            : null;
         try {
           // Use caching if enabled
           if (options.cache) {
-             // TODO: Implement granular caching per source? 
-             // For now, the existing cache logic was monolithic.
-             // We might skip complex caching refactor for now and just fetch.
-             // Or we can try to load cache.
+            // TODO: Implement granular caching per source?
+            // For now, the existing cache logic was monolithic.
+            // We might skip complex caching refactor for now and just fetch.
+            // Or we can try to load cache.
           }
 
           const { packages: fetchedPackages, errors } = await fetchBannedPackages(sourcesToFetch);
           allBanned.push(...fetchedPackages);
           foundSources = true;
-          
+
           if (spinner) {
             if (errors.length > 0) {
-               spinner.warn(chalk.yellow(`Fetched ${fetchedPackages.length} packages, but some sources failed:\n${errors.map(e => '  - ' + e).join('\n')}`));
+              spinner.warn(
+                chalk.yellow(
+                  `Fetched ${fetchedPackages.length} packages, but some sources failed:\n${errors.map((e) => '  - ' + e).join('\n')}`,
+                ),
+              );
             } else {
-               spinner.succeed(chalk.green(`Fetched ${fetchedPackages.length} packages from remote sources.`));
+              spinner.succeed(
+                chalk.green(`Fetched ${fetchedPackages.length} packages from remote sources.`),
+              );
             }
           } else if (errors.length > 0) {
-             errors.forEach(e => console.warn(chalk.yellow(`Warning: ${e}`)));
+            errors.forEach((e) => console.warn(chalk.yellow(`Warning: ${e}`)));
           }
         } catch (error: any) {
-           // This catch block might not be reached anymore unless fetchBannedPackages throws unexpected error
-           if (spinner) {
-              spinner.fail(chalk.red(`Error: Unexpected failure during fetch: ${error.message}`));
-           }
+          // This catch block might not be reached anymore unless fetchBannedPackages throws unexpected error
+          if (spinner) {
+            spinner.fail(chalk.red(`Error: Unexpected failure during fetch: ${error.message}`));
+          }
         }
       }
 
@@ -201,7 +227,7 @@ npx worm-sign --fetch
       }
 
       if (!foundSources && allBanned.length === 0) {
-         console.warn(chalk.yellow('Warning: No banned packages loaded. Scan will likely pass.'));
+        console.warn(chalk.yellow('Warning: No banned packages loaded. Scan will likely pass.'));
       }
 
       const bannedListSource = allBanned;
@@ -210,7 +236,9 @@ npx worm-sign --fetch
         console.log(chalk.blue(`Scanning project at: ${projectRoot}`));
       }
 
-      const { matches, warnings } = await scanProject(projectRoot, bannedListSource, { debug: options.debug });
+      const { matches, warnings } = await scanProject(projectRoot, bannedListSource, {
+        debug: options.debug,
+      });
 
       let reporter;
       try {
@@ -232,7 +260,6 @@ npx worm-sign --fetch
       } else {
         process.exit(0);
       }
-
     } catch (error: any) {
       console.error(chalk.red(`Error: ${error.message}`));
 
@@ -240,11 +267,23 @@ npx worm-sign --fetch
       if (error.message.includes('package.json not found')) {
         console.log(chalk.dim('Hint: Are you in the root directory of your Node.js project?'));
       } else if (error.message.includes('no lockfile was found')) {
-        console.log(chalk.dim('Hint: Run your package manager\'s install command (e.g., `npm install`) to generate a lockfile.'));
+        console.log(
+          chalk.dim(
+            "Hint: Run your package manager's install command (e.g., `npm install`) to generate a lockfile.",
+          ),
+        );
       } else if (error.message.includes('Unable to determine which package manager')) {
-        console.log(chalk.dim('Hint: Ensure you have a lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml) or set the "packageManager" field in package.json.'));
+        console.log(
+          chalk.dim(
+            'Hint: Ensure you have a lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml) or set the "packageManager" field in package.json.',
+          ),
+        );
       } else if (error.message.includes('API request failed')) {
-        console.log(chalk.dim('Hint: Check your internet connection or try using --source koi for an alternative data source.'));
+        console.log(
+          chalk.dim(
+            'Hint: Check your internet connection or try using --source koi for an alternative data source.',
+          ),
+        );
       }
 
       process.exit(2);

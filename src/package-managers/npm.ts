@@ -16,7 +16,10 @@ interface NpmLockFile {
   dependencies?: Record<string, NpmLockPackage>;
 }
 
-function collectFromLock(lockJson: NpmLockFile): { packages: Map<string, Set<string>>, integrity: Map<string, Map<string, string>> } {
+function collectFromLock(lockJson: NpmLockFile): {
+  packages: Map<string, Set<string>>;
+  integrity: Map<string, Map<string, string>>;
+} {
   const packages = new Map<string, Set<string>>();
   const integrity = new Map<string, Map<string, string>>();
 
@@ -46,7 +49,11 @@ function collectFromLock(lockJson: NpmLockFile): { packages: Map<string, Set<str
   return { packages, integrity };
 }
 
-function traverseDeps(deps: Record<string, NpmLockPackage>, packages: Map<string, Set<string>>, integrity: Map<string, Map<string, string>>) {
+function traverseDeps(
+  deps: Record<string, NpmLockPackage>,
+  packages: Map<string, Set<string>>,
+  integrity: Map<string, Map<string, string>>,
+) {
   if (!deps) return;
   for (const [name, info] of Object.entries(deps)) {
     const set = packages.get(name) ?? new Set();
@@ -108,7 +115,12 @@ function loadLockPackages(lockPath: string): LockPackageResult {
   try {
     const lockJson = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
     const result = collectFromLock(lockJson);
-    return { packages: result.packages, packageIntegrity: result.integrity, warnings, success: true };
+    return {
+      packages: result.packages,
+      packageIntegrity: result.integrity,
+      warnings,
+      success: true,
+    };
   } catch (err: any) {
     warnings.push(`Unable to parse ${path.basename(lockPath)}: ${err.message}`);
     return { packages, warnings, success: false };
@@ -120,7 +132,8 @@ const npmHandler: PackageManagerHandler = {
   label: 'npm',
   lockFiles: ['package-lock.json', 'npm-shrinkwrap.json'],
   detectFromPackageManagerField,
-  findLockFile: (repoRoot: string) => findLockFile(repoRoot, ['package-lock.json', 'npm-shrinkwrap.json']),
+  findLockFile: (repoRoot: string) =>
+    findLockFile(repoRoot, ['package-lock.json', 'npm-shrinkwrap.json']),
   loadLockPackages,
 };
 

@@ -1,7 +1,12 @@
 import Table from 'cli-table3';
 import { ScanMatch } from '../types';
 
-export function report(matches: ScanMatch[], warnings: string[], projectRoot: string, context: any = {}) {
+export function report(
+  matches: ScanMatch[],
+  warnings: string[],
+  projectRoot: string,
+  context: any = {},
+) {
   const { chalk, boxen } = context;
 
   // Fallback mocks if not provided
@@ -12,10 +17,9 @@ export function report(matches: ScanMatch[], warnings: string[], projectRoot: st
     bold: (s: string) => s,
     dim: (s: string) => s,
     cyan: (s: string) => s,
-    grey: (s: string) => s
+    grey: (s: string) => s,
   };
   // Handle simple color functions if they are not objects
-
 
   const b = boxen || ((s: string) => s);
 
@@ -29,11 +33,25 @@ export function report(matches: ScanMatch[], warnings: string[], projectRoot: st
   }
 
   if (matches.length === 0) {
-    output += '\n' + b(c.green.bold('✅ No wormsign detected.\nThe spice must flow.'), { padding: 1, borderStyle: 'round', borderColor: 'green' }) + '\n';
+    output +=
+      '\n' +
+      b(c.green.bold('✅ No wormsign detected.\nThe spice must flow.'), {
+        padding: 1,
+        borderStyle: 'round',
+        borderColor: 'green',
+      }) +
+      '\n';
     return output;
   }
 
-  output += '\n' + b(c.red.bold('🚫 Banned packages detected!'), { padding: 1, borderStyle: 'double', borderColor: 'red' }) + '\n\n';
+  output +=
+    '\n' +
+    b(c.red.bold('🚫 Banned packages detected!'), {
+      padding: 1,
+      borderStyle: 'double',
+      borderColor: 'red',
+    }) +
+    '\n\n';
 
   const table = new Table({
     head: [c.bold('Package'), c.bold('Version'), c.bold('Location')],
@@ -44,11 +62,7 @@ export function report(matches: ScanMatch[], warnings: string[], projectRoot: st
   });
 
   matches.forEach(({ name, version, section }) => {
-    table.push([
-      c.red.bold(name),
-      c.red(version),
-      c.dim(section),
-    ]);
+    table.push([c.red.bold(name), c.red(version), c.dim(section)]);
   });
 
   output += table.toString() + '\n';

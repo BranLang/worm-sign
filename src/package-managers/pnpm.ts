@@ -13,7 +13,10 @@ function cleanupVersion(raw: string): string {
   return raw.split('_')[0].split('(')[0].trim();
 }
 
-function parsePnpmLock(content: string): { packages: Map<string, Set<string>>, integrity: Map<string, Map<string, string>> } {
+function parsePnpmLock(content: string): {
+  packages: Map<string, Set<string>>;
+  integrity: Map<string, Map<string, string>>;
+} {
   const packages = new Map<string, Set<string>>();
   const integrity = new Map<string, Map<string, string>>();
   let parsed: any;
