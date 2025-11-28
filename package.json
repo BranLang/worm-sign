@@ -1,6 +1,6 @@
 {
     "name": "worm-sign",
-    "version": "2.1.3",
+    "version": "2.1.4",
     "description": "A prescient scanner to detect and banish Shai Hulud malware from your dependencies.",
     "main": "dist/src/index.js",
     "bin": {
@@ -11,7 +11,7 @@
         "test:smoke": "ts-node smoke_test.ts",
         "lint": "eslint src bin tests",
         "format": "prettier --write src bin tests",
-        "build": "tsc",
+        "build": "tsc && chmod +x dist/bin/scan.js",
         "start": "node dist/bin/scan.js",
         "dev": "ts-node bin/scan.ts"
     },

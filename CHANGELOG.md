@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.1.4] - 2025-11-28
+### Fixed
+- **Permissions**: Fixed `Permission denied` error in CI/CD environments by ensuring the executable bit is correctly set on the CLI binary (`dist/bin/scan.js`) during the build process.
+
 ## [2.1.3] - 2025-11-28
 ### Documentation
 - **Enterprise Usage**: Expanded the "Enterprise Usage" section in README to provide clear instructions for using internal mirrors with the CLI (via `--offline` and `--url`) versus maintaining a fork.
