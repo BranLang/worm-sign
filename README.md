@@ -1,5 +1,8 @@
 # Worm Sign 🪱🚫
 
+[![CI Status](https://github.com/BranLang/worm-sign/actions/workflows/ci.yml/badge.svg)](https://github.com/BranLang/worm-sign/actions/workflows/ci.yml)
+[![npm version](https://badge.fury.io/js/worm-sign.svg)](https://badge.fury.io/js/worm-sign)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm provenance](https://img.shields.io/badge/provenance-verified-green)](https://docs.npmjs.com/generating-provenance-statements)
 
 > "We have wormsign the likes of which even God has never seen."

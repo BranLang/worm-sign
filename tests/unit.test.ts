@@ -7,7 +7,7 @@ import { PassThrough } from 'stream';
 
 jest.mock('https');
 jest.mock('../src/utils/validators', () => ({
-  validateUrl: jest.fn().mockResolvedValue(undefined),
+  validateUrl: jest.fn().mockResolvedValue('1.2.3.4'),
   isPrivateIp: jest.fn().mockReturnValue(false),
 }));
 
@@ -61,7 +61,7 @@ describe('Unit Tests', () => {
       // @ts-expect-error: mocking headers
       mockResponse.headers = {};
 
-      (https.get as jest.Mock).mockImplementation((url, options, callback) => {
+      (https.get as jest.Mock).mockImplementation((options, callback) => {
         callback(mockResponse);
         return { on: jest.fn(), setTimeout: jest.fn(), destroy: jest.fn() };
       });
@@ -82,7 +82,7 @@ describe('Unit Tests', () => {
       // @ts-expect-error: mocking headers
       mockResponse.headers = {};
 
-      (https.get as jest.Mock).mockImplementation((url, options, callback) => {
+      (https.get as jest.Mock).mockImplementation((options, callback) => {
         callback(mockResponse);
         return { on: jest.fn(), setTimeout: jest.fn(), destroy: jest.fn() };
       });
@@ -104,7 +104,7 @@ describe('Unit Tests', () => {
         datadog: 'package_name,package_version\npkg-a,1.0.0\npkg-c,3.0.0',
       };
 
-      (https.get as jest.Mock).mockImplementation((url, options, callback) => {
+      (https.get as jest.Mock).mockImplementation((options, callback) => {
         const stream = new PassThrough();
         // @ts-expect-error: mocking statusCode
         stream.statusCode = 200;
@@ -114,10 +114,11 @@ describe('Unit Tests', () => {
         callback(stream);
 
         process.nextTick(() => {
-          if (url.includes('google')) {
+          const host = options.headers?.Host || '';
+          if (host.includes('google')) {
             // Koi uses google docs
             stream.write(mockResponses['koi']);
-          } else if (url.includes('datadog') || url.includes('github')) {
+          } else if (host.includes('datadog') || host.includes('github')) {
             stream.write(mockResponses['datadog']);
           }
           stream.end();
@@ -153,10 +154,11 @@ describe('Unit Tests', () => {
     });
 
     test('should handle partial failures', async () => {
-      (https.get as jest.Mock).mockImplementation((url, options, callback) => {
+      (https.get as jest.Mock).mockImplementation((options, callback) => {
         const stream = new PassThrough();
+        const host = options.headers?.Host || '';
 
-        if (url.includes('google')) {
+        if (host.includes('google')) {
           // @ts-expect-error: mocking statusCode
           stream.statusCode = 500; // Fail Koi
         } else {
@@ -169,8 +171,8 @@ describe('Unit Tests', () => {
         callback(stream);
 
         process.nextTick(() => {
-          if (!url.includes('google')) {
-            if (url.includes('datadog') || url.includes('github')) {
+          if (!host.includes('google')) {
+            if (host.includes('datadog') || host.includes('github')) {
               stream.write('package_name,package_version\npkg-c,3.0.0');
             }
           }
@@ -201,6 +203,46 @@ describe('Unit Tests', () => {
         expect.arrayContaining([expect.objectContaining({ name: 'pkg-c', version: '3.0.0' })]),
       );
     });
+  });
+});
+
+describe('loadJson', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { loadJson } = require('../src/index');
+
+  test('should return empty array on file read error', () => {
+    const result = loadJson('non-existent-file.json');
+    expect(result).toEqual([]);
+  });
+
+  test('should return empty array on invalid JSON', () => {
+    const filePath = path.join(__dirname, 'invalid.json');
+    fs.writeFileSync(filePath, '{ invalid json }');
+    const result = loadJson(filePath);
+    expect(result).toEqual([]);
+    fs.unlinkSync(filePath);
+  });
+
+  test('should return empty array if no packages array', () => {
+    const filePath = path.join(__dirname, 'no-packages.json');
+    fs.writeFileSync(filePath, JSON.stringify({ foo: 'bar' }));
+    const result = loadJson(filePath);
+    expect(result).toEqual([]);
+    fs.unlinkSync(filePath);
+  });
+});
+
+describe('scanProject', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { scanProject } = require('../src/index');
+
+  test('should throw if no lockfile found', async () => {
+    // Mock fs.existsSync to return false for lockfiles
+    // This is tricky because scanProject uses fs directly or via handlers.
+    // We might need to mock fs or the handlers.
+    // For now, let's rely on the fact that we are running in a test env where we can control paths.
+    // But scanProject takes a root path.
+    await expect(scanProject('/tmp/non-existent', [])).rejects.toThrow();
   });
 });
 
