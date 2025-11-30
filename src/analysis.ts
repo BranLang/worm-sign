@@ -1,10 +1,8 @@
-import { decryptAll } from './utils/vial';
-import { ENCRYPTED_PATTERNS } from './generated/signatures';
+import { MALWARE_PATTERNS } from './generated/signatures';
 import { isHighEntropy } from './heuristics/entropy';
 
 /**
  * Analyzes package scripts for suspicious patterns and high entropy.
- * Uses the "Vial" protocol to decrypt signatures at runtime.
  */
 interface PackageJson {
   scripts?: Record<string, string>;
@@ -15,12 +13,7 @@ export function analyzeScripts(pkgJson: PackageJson): string[] {
   const warnings: string[] = [];
   const scripts = pkgJson.scripts || {};
 
-  // Decrypt signatures at runtime
-  const SUSPICIOUS_STRINGS = decryptAll(ENCRYPTED_PATTERNS);
-
   // Map of regex patterns to labels
-  // We reconstruct some regexes from the decrypted strings where applicable,
-  // or keep generic ones and check for specific substrings.
   const PATTERNS = [
     { regex: /(curl|wget)\s+/, label: 'Network request (curl/wget)' },
     { regex: /\|\s*bash/, label: 'Pipe to bash' },
@@ -48,8 +41,8 @@ export function analyzeScripts(pkgJson: PackageJson): string[] {
       }
     }
 
-    // 3. Check for specific decrypted signatures (Shai-Hulud specific)
-    for (const signature of SUSPICIOUS_STRINGS) {
+    // 3. Check for specific signatures (Shai-Hulud specific)
+    for (const signature of MALWARE_PATTERNS) {
       if (script.includes(signature)) {
         warnings.push(`Suspicious script detected in '${name}': Known Malware Signature Match`);
       }

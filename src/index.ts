@@ -8,8 +8,7 @@ import Arborist from '@npmcli/arborist';
 import { analyzeScripts } from './analysis';
 export { analyzeScripts };
 import { EntropyCalculator } from './heuristics/entropy';
-import { decryptAll } from './utils/vial';
-import { ENCRYPTED_FILENAMES } from './generated/signatures';
+import { MALWARE_FILENAMES } from './generated/signatures';
 import { CompromisedPackage, ScanMatch } from './types';
 import { validateUrl } from './utils/validators';
 
@@ -282,8 +281,7 @@ export async function scanProject(
   const scriptWarnings = analyzeScripts(packageJson);
   allWarnings.push(...scriptWarnings);
 
-  // 2. Check for known malware files in root (using decrypted filenames)
-  const MALWARE_FILES = decryptAll(ENCRYPTED_FILENAMES);
+  // 2. Check for known malware files in root
   const KNOWN_MALWARE_HASHES = new Set([
     'a3894003ad1d293ba96d77881ccd2071446dc3f65f434669b49b3da92421901a', // setup_bun.js
     '62ee164b9b306250c1172583f138c9614139264f889fa99614903c12755468d0', // bun_environment.js
@@ -291,7 +289,7 @@ export async function scanProject(
     'f099c5d9ec417d4445a0328ac0ada9cde79fc37410914103ae9c609cbc0ee068', // bun_environment.js
   ]);
 
-  for (const file of MALWARE_FILES) {
+  for (const file of MALWARE_FILENAMES) {
     const filePath = path.join(resolvedRoot, file);
     if (fs.existsSync(filePath)) {
       try {

@@ -12,7 +12,6 @@
 ## Features
 
 - **Safe Static Analysis**: Uses `@npmcli/arborist` to inspect the dependency tree without executing any lifecycle scripts, neutralizing the malware's "Dead Man's Switch".
-- **Signature Obfuscation**: Implements the "Vial" protocol to XOR-encrypt internal signatures, preventing the scanner itself from being flagged by AV/EDR systems.
 - **Detects Shai Hulud**: Identifies packages known to be compromised by the Shai Hulud malware.
 - **Hash-Based Detection**: Detects compromised packages by their integrity hash (SHA-1/SHA-512), catching variants even if they are renamed or version-spoofed.
 - **Lockfile Required**: Scans `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. **A lockfile is required for analysis.**
@@ -37,6 +36,9 @@ Worm Sign includes advanced detection logic specifically for the **Shai-Hulud 2.
 
 ### 🛡️ "Dead Man's Switch" Neutralization
 Shai-Hulud 2.0 contains a retaliatory wiper that triggers if analysis is detected or network calls fail. **Worm Sign** neutralizes this by using **Safe Static Analysis**. It parses your lockfile directly (using `Arborist.loadVirtual()`) to build an in-memory dependency graph. It **never** runs `npm install` or executes `preinstall`/`postinstall` scripts during scanning, ensuring the malware is never given a chance to execute.
+
+### 🔍 Transparency & Signatures
+To ensure full transparency, **Worm Sign** stores all malware signatures (filenames, patterns) in plain text within the source code. We explicitly avoid obfuscation techniques to distinguish this security tool from the malware it detects. You can inspect the signatures in `src/generated/signatures.ts`.
 
 ### 🔐 Trusted Publishing
 This package is published with **npm provenance**. You can verify the build attestation on the npm registry to confirm that the package you are installing was built from this specific GitHub repository and has not been tampered with.
