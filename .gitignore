@@ -51,3 +51,7 @@ test_output/
 # Reports and Output
 reports/
 output.json
+
+# Fixtures
+# tests/fixtures/ should NOT be ignored as it contains test data
+tests/temp_research_test/

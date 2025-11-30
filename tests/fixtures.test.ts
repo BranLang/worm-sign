@@ -17,25 +17,25 @@ describe('Fixture Tests', () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  test.skip('yarn-ok should have no banned packages', async () => {
+  test('yarn-ok should have no banned packages', async () => {
     const projectRoot = path.join(FIXTURES_DIR, 'yarn-ok');
     const { matches } = await scanProject(projectRoot, BANNED_LIST);
     expect(matches).toHaveLength(0);
   });
 
-  test.skip('yarn-banned should have banned packages', async () => {
+  test('yarn-banned should have banned packages', async () => {
     const projectRoot = path.join(FIXTURES_DIR, 'yarn-banned');
     const { matches } = await scanProject(projectRoot, BANNED_LIST);
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  test.skip('pnpm-ok should have no banned packages', async () => {
+  test('pnpm-ok should have no banned packages', async () => {
     const projectRoot = path.join(FIXTURES_DIR, 'pnpm-ok');
     const { matches } = await scanProject(projectRoot, BANNED_LIST);
     expect(matches).toHaveLength(0);
   });
 
-  test.skip('pnpm-banned should have banned packages', async () => {
+  test('pnpm-banned should have banned packages', async () => {
     const projectRoot = path.join(FIXTURES_DIR, 'pnpm-banned');
     const { matches } = await scanProject(projectRoot, BANNED_LIST);
     expect(matches.length).toBeGreaterThan(0);

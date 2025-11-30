@@ -7,18 +7,20 @@ import { IncomingMessage } from 'http';
 import Arborist from '@npmcli/arborist';
 import { analyzeScripts } from './analysis';
 export { analyzeScripts };
-import { calculateEntropy } from './heuristics/entropy';
+import { EntropyCalculator } from './heuristics/entropy';
 import { decryptAll } from './utils/vial';
 import { ENCRYPTED_FILENAMES } from './generated/signatures';
 import { CompromisedPackage, ScanMatch } from './types';
 import { validateUrl } from './utils/validators';
 
 import { loadCsv, parseCsv } from './utils/csv';
+import yarnHandler from './package-managers/yarn';
+import pnpmHandler from './package-managers/pnpm';
 export { loadCsv, parseCsv };
 
 export function loadJson(filePath: string): CompromisedPackage[] {
-  const raw = fs.readFileSync(filePath, 'utf8');
   try {
+    const raw = fs.readFileSync(filePath, 'utf8');
     const json = JSON.parse(raw);
     if (Array.isArray(json)) {
       // Handle array of packages directly
@@ -30,7 +32,6 @@ export function loadJson(filePath: string): CompromisedPackage[] {
     console.warn(
       `Warning: JSON at ${filePath} does not contain a "packages" array or is not an array.`,
     );
-    return [];
     return [];
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -75,22 +76,30 @@ export function fetchFromApi(sourceConfig: {
   }
 
   const fetchUrl = async (targetUrl: string, attempt = 1): Promise<CompromisedPackage[]> => {
-    // SSRF Protection
-    await validateUrl(targetUrl);
+    // SSRF Protection: Resolve and validate IP first
+    const resolvedIp = await validateUrl(targetUrl);
+    const urlObj = new URL(targetUrl);
 
     return new Promise((resolve, reject) => {
       if (attempt > 5) {
         reject(new Error('Too many redirects'));
         return;
       }
+
       const options: https.RequestOptions = {
+        hostname: resolvedIp,
+        port: urlObj.port || 443,
+        path: urlObj.pathname + urlObj.search,
+        servername: urlObj.hostname, // SNI
         headers: {
+          Host: urlObj.hostname, // Host header
           Accept: type === 'json' ? 'application/json' : 'text/csv',
           'User-Agent': 'worm-sign',
         },
         rejectUnauthorized: !insecure,
       };
-      const req = https.get(targetUrl, options, (res: IncomingMessage) => {
+
+      const req = https.get(options, (res: IncomingMessage) => {
         if (
           res.statusCode &&
           res.statusCode >= 300 &&
@@ -286,63 +295,129 @@ export async function scanProject(
     const filePath = path.join(resolvedRoot, file);
     if (fs.existsSync(filePath)) {
       try {
-        const fileBuffer = fs.readFileSync(filePath);
-        const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+        const stats = fs.statSync(filePath);
+        const isLarge = stats.size > 5 * 1024 * 1024;
 
-        if (KNOWN_MALWARE_HASHES.has(hash)) {
-          allWarnings.push(`CONFIRMED MALWARE file detected: '${file}' (Hash match: ${hash})`);
-        } else {
-          // Check for high entropy (obfuscation) if file is large (> 5MB)
-          const stats = fs.statSync(filePath);
-          if (stats.size > 5 * 1024 * 1024) {
-            const entropy = calculateEntropy(fileBuffer);
-            // Threshold 7.5 for binary/compressed data is conservative; 
-            // but for text files (js), > 5.2 is suspicious. 
-            // The test expects "High Entropy" warning.
-            // Let's use 7.0 as a safe bet for "packed malware" in JS context if it's huge.
-            if (entropy > 7.0) {
-              allWarnings.push(
-                `HIGH RISK file detected: '${file}' (High Entropy: ${entropy.toFixed(2)}, Size: ${stats.size} bytes)`,
-              );
+        const hash = crypto.createHash('sha256');
+        // Only calculate entropy if file is large (optimization)
+        const entropyCalc = isLarge ? new EntropyCalculator() : null;
+
+        const stream = fs.createReadStream(filePath);
+
+        await new Promise<void>((resolve, reject) => {
+          stream.on('data', (chunk) => {
+            hash.update(chunk);
+            if (entropyCalc) {
+              entropyCalc.update(chunk);
             }
+          });
+          stream.on('error', reject);
+          stream.on('end', resolve);
+        });
+
+        const finalHash = hash.digest('hex');
+
+        if (KNOWN_MALWARE_HASHES.has(finalHash)) {
+          allWarnings.push(`CONFIRMED MALWARE file detected: '${file}' (Hash match: ${finalHash})`);
+        } else if (isLarge && entropyCalc) {
+          const entropy = entropyCalc.digest();
+          // Threshold 7.0 for packed malware in JS context
+          if (entropy > 7.0) {
+            allWarnings.push(
+              `HIGH RISK file detected: '${file}' (High Entropy: ${entropy.toFixed(2)}, Size: ${stats.size} bytes)`,
+            );
           }
           allWarnings.push(`Suspicious file detected: '${file}' (associated with Shai Hulud)`);
+        } else {
+          allWarnings.push(`Suspicious file detected: '${file}' (associated with Shai Hulud)`);
         }
-      } catch {
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
         allWarnings.push(
-          `Suspicious file detected: '${file}' (associated with Shai Hulud) - could not read hash`,
+          `Suspicious file detected: '${file}' (associated with Shai Hulud) - could not read: ${msg}`,
         );
       }
     }
   }
 
-  // 3. Scan Dependencies using Arborist
+  // 3. Scan Dependencies
   const compromisedMap = buildCompromisedMap(compromisedEntries);
   const matches: ScanMatch[] = [];
 
+  let treeLoaded = false;
+
+  // Try npm (Arborist) first
   try {
     const arb = new Arborist({ path: resolvedRoot });
-    // loadVirtual() reads the lockfile and builds the tree without checking node_modules
     const tree = await arb.loadVirtual();
     debug(`Loaded dependency tree with ${tree.inventory.size} nodes.`);
+    treeLoaded = true;
 
     for (const node of tree.inventory.values()) {
       const { name, version, integrity } = node;
       const info = compromisedMap.get(name);
 
       if (shouldFlag(info, version, integrity)) {
-        // Determine section (dev/prod) - Arborist nodes have 'dev' property
         const section = node.dev ? 'devDependencies' : 'dependencies';
         matches.push({ name, version, section });
       }
     }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    // Fallback or error reporting
-    if (msg.includes('ENOENT') && msg.includes('lock')) {
-      throw new Error('No lockfile found. Please run npm install/yarn install to generate one.');
+    debug(`Arborist failed: ${msg}`);
+    // If it's not a missing lockfile error, rethrow
+    if (!msg.includes('ENOENT') && !msg.includes('lockfile') && !msg.includes('shrinkwrap')) {
+      throw new Error(`Failed to load dependency tree: ${msg}`);
     }
-    throw new Error(`Failed to load dependency tree: ${msg}`);
+  }
+
+  // Fallback to Yarn or pnpm if npm failed
+  if (!treeLoaded) {
+    debug('Checking for Yarn or pnpm lockfiles...');
+    const handlers = [yarnHandler, pnpmHandler];
+    let handlerFound = false;
+
+    for (const handler of handlers) {
+      const lockFile = handler.findLockFile(resolvedRoot);
+      if (lockFile) {
+        debug(`Found ${handler.label} lockfile: ${lockFile}`);
+        handlerFound = true;
+        const result = handler.loadLockPackages(lockFile);
+
+        if (!result.success) {
+          result.warnings.forEach((w) => allWarnings.push(w));
+          continue;
+        }
+
+        // Iterate over loaded packages
+        for (const [name, versions] of result.packages.entries()) {
+          const info = compromisedMap.get(name);
+          if (!info) continue;
+
+          for (const version of versions) {
+            // Get integrity if available
+            let integrity: string | undefined;
+            if (result.packageIntegrity) {
+              const pkgIntegrity = result.packageIntegrity.get(name);
+              if (pkgIntegrity) {
+                integrity = pkgIntegrity.get(version);
+              }
+            }
+
+            if (shouldFlag(info, version, integrity)) {
+              matches.push({ name, version, section: 'locked' });
+            }
+          }
+        }
+        break; // Stop after first successful handler
+      }
+    }
+
+    if (!handlerFound) {
+      throw new Error(
+        'No lockfile found (package-lock.json, yarn.lock, pnpm-lock.yaml). Please install dependencies.',
+      );
+    }
   }
 
   return { matches, warnings: allWarnings };

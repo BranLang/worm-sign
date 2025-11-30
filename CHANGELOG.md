@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.0.1] - 2025-11-30
+
+### Fixed
+
+- **Yarn & pnpm Support**: Fixed `scanProject` to correctly fallback to `yarn.lock` and `pnpm-lock.yaml` parsing when `package-lock.json` is missing.
+- **Error Handling**: Fixed a crash in `loadJson` when encountering missing files or invalid JSON.
+- **Test Coverage**: Improved unit test coverage for error handling and edge cases in core scanning logic.
+
+### Added
+
+- **Documentation**: Added CI status, NPM version, and License badges to README.
+- **Smoke Tests**: Enhanced smoke tests to verify detection of multiple compromised packages.
+
 ## [3.0.0] - 2025-11-30
 
 ### Added

@@ -39,7 +39,7 @@ export function isPrivateIp(ip: string): boolean {
   return false;
 }
 
-export async function validateUrl(urlStr: string): Promise<void> {
+export async function validateUrl(urlStr: string): Promise<string> {
   let parsed: URL;
   try {
     parsed = new URL(urlStr);
@@ -58,7 +58,7 @@ export async function validateUrl(urlStr: string): Promise<void> {
     if (isPrivateIp(hostname)) {
       throw new Error(`Security Error: Access to private IP ${hostname} is forbidden.`);
     }
-    return;
+    return hostname;
   }
 
   // Resolve hostname
@@ -74,7 +74,7 @@ export async function validateUrl(urlStr: string): Promise<void> {
         );
         return;
       }
-      resolve();
+      resolve(address);
     });
   });
 }

@@ -1,0 +1,18 @@
+{
+    "name": "fixture-npm-critical-breach",
+    "private": true,
+    "version": "1.0.0",
+    "packageManager": "npm@10.8.1",
+    "dependencies": {
+        "@accordproject/concerto-analysis": "3.24.1",
+        "@accordproject/concerto-linter": "3.24.1",
+        "@accordproject/concerto-metamodel": "3.12.5",
+        "@actbase/native": "0.1.32",
+        "@actbase/node-server": "1.1.19",
+        "@actbase/react-absolute": "0.8.3",
+        "@actbase/react-daum-postcode": "1.0.5",
+        "@actbase/react-kakaosdk": "0.9.27",
+        "@actbase/react-native-actionsheet": "1.0.3",
+        "@actbase/react-native-devtools": "0.1.3"
+    }
+}

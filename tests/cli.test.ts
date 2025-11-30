@@ -7,7 +7,7 @@ function runCli(args: string[]) {
   return spawnSync('node', ['-r', 'ts-node/register', scriptPath, ...args], {
     encoding: 'utf8',
     shell: true,
-    env: { ...process.env, TS_NODE_TRANSPILE_ONLY: 'true' } // Speed up
+    env: { ...process.env, TS_NODE_TRANSPILE_ONLY: 'true' }, // Speed up
   });
 }
 

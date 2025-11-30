@@ -28,8 +28,8 @@ async function run() {
         if (expectFailure) {
             if (result.status === 1) {
                 spinner.succeed(`${chalk.bold(fixtureName)}: ${chalk.green('Passed')} (Failed as expected) ${chalk.gray(`(${duration}ms)`)}`);
-                if (fixtureName === 'npm-banned') {
-                    bannedOutput = result.stdout;
+                if (fixtureName === 'npm-banned' || fixtureName === 'npm-critical-breach') {
+                    bannedOutput += `\n--- ${fixtureName} ---\n` + result.stdout;
                 }
             } else {
                 spinner.fail(`${chalk.bold(fixtureName)}: ${chalk.red('Failed')} (Expected failure, got success)`);
@@ -55,6 +55,7 @@ async function run() {
 
     runScan('npm-ok', false);
     runScan('npm-banned', true);
+    runScan('npm-critical-breach', true);
     // runScan('yarn-ok', false);
     // runScan('yarn-banned', true);
     // runScan('pnpm-ok', false);

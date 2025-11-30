@@ -268,12 +268,23 @@ npx worm-sign --fetch
         console.log(JSON.stringify(sarifReport, null, 2));
       } else {
         if (matches.length > 0) {
-          console.log(chalk.red(`\n🚫 FOUND ${matches.length} COMPROMISED PACKAGES:`));
-          matches.forEach((m: ScanMatch) => {
-            console.log(
-              chalk.red(`  - ${m.name}@${m.version}`) + chalk.dim(` (found in ${m.section})`),
-            );
-          });
+          const title = chalk.bold.red(`🚫 FOUND ${matches.length} COMPROMISED PACKAGES`);
+          const list = matches
+            .map(
+              (m: ScanMatch) =>
+                chalk.red(`  - ${m.name}@${m.version}`) + chalk.dim(` (found in ${m.section})`),
+            )
+            .join('\n');
+
+          console.log(
+            boxen(`${title}\n\n${list}`, {
+              padding: 1,
+              borderStyle: 'double',
+              borderColor: 'red',
+              title: 'CRITICAL SECURITY ALERT',
+              titleAlignment: 'center',
+            }),
+          );
         }
       }
 

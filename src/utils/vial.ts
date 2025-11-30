@@ -9,7 +9,7 @@
 
 // The static key used for encryption/decryption.
 // This matches the key in scripts/encrypt-signatures.ts
-const CIPHER_KEY = 0x5F;
+const CIPHER_KEY = 0x5f;
 
 /**
  * Decrypts a buffer of XOR-encoded bytes back into a string.
@@ -17,10 +17,10 @@ const CIPHER_KEY = 0x5F;
  * @returns The decrypted string
  */
 export function decrypt(encodedBytes: number[]): string {
-    return encodedBytes
-        .map((byte) => byte ^ CIPHER_KEY)
-        .map((byte) => String.fromCharCode(byte))
-        .join('');
+  return encodedBytes
+    .map((byte) => byte ^ CIPHER_KEY)
+    .map((byte) => String.fromCharCode(byte))
+    .join('');
 }
 
 /**
@@ -29,5 +29,5 @@ export function decrypt(encodedBytes: number[]): string {
  * @returns Array of decrypted strings
  */
 export function decryptAll(encodedSignatures: number[][]): string[] {
-    return encodedSignatures.map(decrypt);
+  return encodedSignatures.map(decrypt);
 }
