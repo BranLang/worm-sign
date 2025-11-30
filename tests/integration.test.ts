@@ -2,6 +2,7 @@ import { fetchCompromisedPackages, scanProject } from '../src/index';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { execSync } from 'child_process';
 
 describe('Integration Tests', () => {
   const tempDir = path.join(os.tmpdir(), 'worm-sign-integration-test');
@@ -62,7 +63,6 @@ describe('Integration Tests', () => {
     // Create a dummy lockfile to satisfy the scanner
     // We use npm to generate a valid lockfile to ensure Arborist can read it.
     try {
-      const { execSync } = require('child_process');
       execSync('npm install --package-lock-only --ignore-scripts --no-audit', {
         cwd: projectDir,
         stdio: 'ignore', // Suppress output

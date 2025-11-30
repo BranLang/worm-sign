@@ -13,22 +13,23 @@
  * @param str The input string
  * @returns The entropy value (typically between 0 and 8)
  */
-export function calculateEntropy(str: string): number {
-    if (!str || str.length === 0) {
+export function calculateEntropy(input: string | Buffer): number {
+    if (!input || input.length === 0) {
         return 0;
     }
 
-    const frequencies: Record<string, number> = {};
-    for (let i = 0; i < str.length; i++) {
-        const char = str[i];
-        frequencies[char] = (frequencies[char] || 0) + 1;
+    const frequencies: Record<number, number> = {};
+    const len = input.length;
+
+    for (let i = 0; i < len; i++) {
+        const byte = typeof input === 'string' ? input.charCodeAt(i) : input[i];
+        frequencies[byte] = (frequencies[byte] || 0) + 1;
     }
 
     let entropy = 0;
-    const len = str.length;
 
-    for (const char in frequencies) {
-        const p = frequencies[char] / len;
+    for (const count of Object.values(frequencies)) {
+        const p = count / len;
         entropy -= p * Math.log2(p);
     }
 

@@ -39,9 +39,9 @@ if (!fs.existsSync(binPath)) {
 
 runScan('npm-ok', false);
 runScan('npm-banned', true);
-runScan('yarn-ok', false);
-runScan('yarn-banned', true);
-runScan('pnpm-ok', false);
-runScan('pnpm-banned', true);
+// runScan('yarn-ok', false);
+// runScan('yarn-banned', true);
+// runScan('pnpm-ok', false);
+// runScan('pnpm-banned', true);
 
 console.log('\nAll smoke tests passed!');

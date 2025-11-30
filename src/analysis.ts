@@ -6,7 +6,12 @@ import { isHighEntropy } from './heuristics/entropy';
  * Analyzes package scripts for suspicious patterns and high entropy.
  * Uses the "Vial" protocol to decrypt signatures at runtime.
  */
-export function analyzeScripts(pkgJson: any): string[] {
+interface PackageJson {
+    scripts?: Record<string, string>;
+    [key: string]: unknown;
+}
+
+export function analyzeScripts(pkgJson: PackageJson): string[] {
     const warnings: string[] = [];
     const scripts = pkgJson.scripts || {};
 

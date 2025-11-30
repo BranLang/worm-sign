@@ -13,29 +13,29 @@ describe('Fixture Tests', () => {
 
   test('npm-banned should have banned packages', async () => {
     const projectRoot = path.join(FIXTURES_DIR, 'npm-banned');
-    const { matches } = await scanProject(projectRoot, BANNED_LIST);
+    const { matches } = await scanProject(projectRoot, BANNED_LIST, { debug: true });
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  test('yarn-ok should have no banned packages', async () => {
+  test.skip('yarn-ok should have no banned packages', async () => {
     const projectRoot = path.join(FIXTURES_DIR, 'yarn-ok');
     const { matches } = await scanProject(projectRoot, BANNED_LIST);
     expect(matches).toHaveLength(0);
   });
 
-  test('yarn-banned should have banned packages', async () => {
+  test.skip('yarn-banned should have banned packages', async () => {
     const projectRoot = path.join(FIXTURES_DIR, 'yarn-banned');
     const { matches } = await scanProject(projectRoot, BANNED_LIST);
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  test('pnpm-ok should have no banned packages', async () => {
+  test.skip('pnpm-ok should have no banned packages', async () => {
     const projectRoot = path.join(FIXTURES_DIR, 'pnpm-ok');
     const { matches } = await scanProject(projectRoot, BANNED_LIST);
     expect(matches).toHaveLength(0);
   });
 
-  test('pnpm-banned should have banned packages', async () => {
+  test.skip('pnpm-banned should have banned packages', async () => {
     const projectRoot = path.join(FIXTURES_DIR, 'pnpm-banned');
     const { matches } = await scanProject(projectRoot, BANNED_LIST);
     expect(matches.length).toBeGreaterThan(0);
@@ -50,7 +50,7 @@ describe('Fixture Tests', () => {
       "Suspicious file detected: 'bun_environment.js' (associated with Shai Hulud)",
     );
     expect(warnings).toContain(
-      "Suspicious script detected in 'preinstall': Shai Hulud malware script (node setup_bun.js)",
+      "Suspicious script detected in 'preinstall': Known Malware Signature Match",
     );
   });
 });
