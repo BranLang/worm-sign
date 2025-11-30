@@ -1,5 +1,7 @@
 # Worm Sign 🪱🚫
 
+[![npm provenance](https://img.shields.io/badge/provenance-verified-green)](https://docs.npmjs.com/generating-provenance-statements)
+
 > "We have wormsign the likes of which even God has never seen."
 
 **Worm Sign** is a specialized scanner designed to detect and block npm packages compromised by the **Shai Hulud** malware campaign. It scans your project's `package.json` and lockfiles against a list of known banned packages.
@@ -10,7 +12,7 @@
 - **Signature Obfuscation**: Implements the "Vial" protocol to XOR-encrypt internal signatures, preventing the scanner itself from being flagged by AV/EDR systems.
 - **Detects Shai Hulud**: Identifies packages known to be compromised by the Shai Hulud malware.
 - **Hash-Based Detection**: Detects compromised packages by their integrity hash (SHA-1/SHA-512), catching variants even if they are renamed or version-spoofed.
-- **Lockfile Support**: Scans `package-lock.json`, `yarn.lock`, and `pnpm-lock.yaml`.
+- **Lockfile Required**: Scans `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. **A lockfile is required for analysis.**
 - **API Integration**: Fetches the latest banned list from a remote API (customizable).
 - **Smart Caching**: Caches API responses locally for 1 hour to improve performance.
 - **Heuristic Analysis**: Scans `package.json` scripts for suspicious patterns (e.g., `curl | bash`, `rm -rf`, reverse shells, obfuscated code).
@@ -27,6 +29,14 @@ Worm Sign includes advanced detection logic specifically for the **Shai-Hulud 2.
 - **Destructive Commands**: Flags scripts containing system-wiping commands like `shred -uvz -n 1` (Linux/macOS) and `del /F /Q /S "%USERPROFILE%*"` (Windows).
 - **Installation Vectors**: Detects specific installation patterns used by the malware, such as `irm bun.sh/install.ps1|iex` (PowerShell Bun install).
 - **C2 Signatures**: Scans for known Command & Control signatures like `"Sha1-Hulud: The Second Coming"`.
+
+## Safety & Trust
+
+### 🛡️ "Dead Man's Switch" Neutralization
+Shai-Hulud 2.0 contains a retaliatory wiper that triggers if analysis is detected or network calls fail. **Worm Sign** neutralizes this by using **Safe Static Analysis**. It parses your lockfile directly (using `Arborist.loadVirtual()`) to build an in-memory dependency graph. It **never** runs `npm install` or executes `preinstall`/`postinstall` scripts during scanning, ensuring the malware is never given a chance to execute.
+
+### 🔐 Trusted Publishing
+This package is published with **npm provenance**. You can verify the build attestation on the npm registry to confirm that the package you are installing was built from this specific GitHub repository and has not been tampered with.
 
 ## Installation
 
