@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.1.1] - 2025-12-01
+
+### Enterprise Hardening
+
+- **Governance**: Added `CODEOWNERS` and `SECURITY.md` to define project maintainers and vulnerability reporting policies.
+- **Configuration**: Added support for `.wormsignrc` (JSON/YAML) to enforce security policies:
+    - `offline`: Force offline mode.
+    - `allowedSources`: Whitelist specific threat intelligence sources.
+    - `suppressedRules`: Suppress specific heuristic rules.
+- **Heuristics**: Introduced severity levels (Low, Medium, High, Critical) for findings and improved CLI output with color-coded severity.
+- **Documentation**: Added `docs/enterprise-deployment.md` playbook for enterprise integration and internal mirroring.
+
 ## [3.1.0] - 2025-11-30
 
 ### Security & Transparency

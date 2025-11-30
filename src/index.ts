@@ -16,6 +16,8 @@ import { loadCsv, parseCsv } from './utils/csv';
 import yarnHandler from './package-managers/yarn';
 import pnpmHandler from './package-managers/pnpm';
 export { loadCsv, parseCsv };
+export { loadConfig } from './config';
+export type { WormSignConfig } from './config';
 
 export function loadJson(filePath: string): CompromisedPackage[] {
   try {
@@ -239,10 +241,13 @@ function shouldFlag(
  * @param {boolean} [options.debug] - Enable debug logging.
  * @returns {Promise<{ matches: Array<{name: string, version: string, section: string}>, warnings: string[] }>}
  */
+import { Finding } from './types';
+import { WormSignConfig } from './config';
+
 export async function scanProject(
   projectRoot: string,
   compromisedListSource: string | CompromisedPackage[],
-  options?: { debug?: boolean },
+  options?: { debug?: boolean; config?: WormSignConfig },
 ) {
   const debug = (msg: string) => {
     if (options?.debug) console.log(`[DEBUG] ${msg}`);
@@ -257,6 +262,7 @@ export async function scanProject(
 
   const packageJsonPath = path.join(resolvedRoot, 'package.json');
   const allWarnings: string[] = [];
+  const allFindings: Finding[] = [];
 
   let compromisedEntries: CompromisedPackage[];
   if (Array.isArray(compromisedListSource)) {
@@ -278,8 +284,10 @@ export async function scanProject(
   debug('Loaded package.json');
 
   // 1. Analyze Root Scripts
-  const scriptWarnings = analyzeScripts(packageJson);
-  allWarnings.push(...scriptWarnings);
+  const scriptFindings = analyzeScripts(packageJson, options?.config);
+  allFindings.push(...scriptFindings);
+  // Backwards compatibility: push messages to warnings
+  scriptFindings.forEach(f => allWarnings.push(f.message));
 
   // 2. Check for known malware files in root
   const KNOWN_MALWARE_HASHES = new Set([
@@ -418,5 +426,5 @@ export async function scanProject(
     }
   }
 
-  return { matches, warnings: allWarnings };
+  return { matches, warnings: allWarnings, findings: allFindings };
 }

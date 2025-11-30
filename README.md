@@ -7,12 +7,12 @@
 
 > "We have wormsign the likes of which even God has never seen."
 
-**Worm Sign** is a specialized scanner designed to detect and block npm packages compromised by the **Shai Hulud** malware campaign. It scans your project's `package.json` and lockfiles against a list of known banned packages.
+**Worm Sign** is a specialized scanner designed to detect and block npm packages compromised by the **Shai Hulud** malware campaign. It scans your project's `package.json` and lockfiles against a curated list of **2,214 known compromised packages**.
 
 ## Features
 
 - **Safe Static Analysis**: Uses `@npmcli/arborist` to inspect the dependency tree without executing any lifecycle scripts, neutralizing the malware's "Dead Man's Switch".
-- **Detects Shai Hulud**: Identifies packages known to be compromised by the Shai Hulud malware.
+- **Detects Shai Hulud**: Identifies **2,214** packages known to be compromised by the Shai Hulud malware.
 - **Hash-Based Detection**: Detects compromised packages by their integrity hash (SHA-1/SHA-512), catching variants even if they are renamed or version-spoofed.
 - **Lockfile Required**: Scans `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. **A lockfile is required for analysis.**
 - **API Integration**: Fetches the latest banned list from a remote API (customizable).
@@ -140,6 +140,20 @@ By default, `worm-sign` will:
 3. Fail the build if any banned packages are found (exit code 1).
 
 You do not need to pass `--fetch` explicitly; the scanner automatically processes all configured sources.
+
+## Network Requirements
+
+Worm Sign fetches threat intelligence from the following public endpoints. Ensure your firewall allows outbound HTTPS (443) access to:
+
+- **Datadog**: `raw.githubusercontent.com`
+- **Koi**: `docs.google.com`
+
+### Proxy Support
+Worm Sign respects standard proxy environment variables. If you are behind a corporate proxy, set:
+
+- `HTTPS_PROXY` (or `https_proxy`)
+- `HTTP_PROXY` (or `http_proxy`)
+- `NO_PROXY` (or `no_proxy`)
 
 ## Enterprise Usage
 

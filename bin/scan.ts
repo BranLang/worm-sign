@@ -7,6 +7,7 @@ import {
   scanProject,
   fetchCompromisedPackages,
   loadJson,
+  loadConfig,
   SOURCES,
   SourceConfig,
 } from '../src/index';
@@ -67,6 +68,13 @@ program
   .option('--insecure', 'Disable SSL certificate verification (use with caution)')
   .option('--debug', 'Enable debug logging')
   .action(async (options) => {
+    const config = loadConfig();
+
+    // Apply config defaults
+    if (config.offline && options.offline === undefined) {
+      options.offline = true;
+    }
+
     if (options.offline) {
       options.fetch = false;
     }
@@ -197,6 +205,21 @@ npx worm-sign --fetch
 
       // 3. Fetch remote sources
       if (sourcesToFetch.length > 0) {
+        // Filter by allowedSources if configured
+        if (config.allowedSources && config.allowedSources.length > 0) {
+          const allowed = new Set(config.allowedSources);
+          const filtered = sourcesToFetch.filter(s => s.name && allowed.has(s.name));
+
+          if (filtered.length < sourcesToFetch.length) {
+            const blocked = sourcesToFetch.filter(s => s.name && !allowed.has(s.name));
+            if (options.format === 'text') {
+              blocked.forEach(s => console.warn(chalk.yellow(`Warning: Source '${s.name}' blocked by configuration.`)));
+            }
+          }
+          sourcesToFetch.length = 0;
+          sourcesToFetch.push(...filtered);
+        }
+
         if (options.insecure) {
           sourcesToFetch.forEach((s) => (s.insecure = true));
         }
@@ -259,8 +282,9 @@ npx worm-sign --fetch
         console.log(chalk.blue(`Scanning project at: ${projectRoot}`));
       }
 
-      const { matches, warnings } = await scanProject(projectRoot, compromisedListSource, {
+      const { matches, warnings, findings } = await scanProject(projectRoot, compromisedListSource, {
         debug: options.debug,
+        config,
       });
 
       if (options.format === 'sarif') {
@@ -299,7 +323,17 @@ npx worm-sign --fetch
       } else {
         if (warnings.length > 0 && options.format === 'text') {
           console.log('');
-          warnings.forEach((w: string) => console.warn(chalk.yellow(`Warning: ${w}`)));
+
+          if (findings && findings.length > 0) {
+            findings.forEach(f => {
+              let color = chalk.yellow;
+              if (f.severity === 'high') color = chalk.red;
+              if (f.severity === 'critical') color = chalk.bgRed.white;
+              console.warn(color(`${f.severity.toUpperCase()}: ${f.message}`));
+            });
+          } else {
+            warnings.forEach((w: string) => console.warn(chalk.yellow(`Warning: ${w}`)));
+          }
         }
         if (options.format === 'text') {
           console.log(chalk.green('\nNo wormsign detected.'));
