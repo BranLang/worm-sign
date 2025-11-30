@@ -7,6 +7,9 @@ const TEST_DIR = path.join(__dirname, 'temp_research_test');
 
 describe('Research Heuristics (Shai-Hulud 2.0)', () => {
   beforeAll(() => {
+    if (fs.existsSync(TEST_DIR)) {
+      fs.rmSync(TEST_DIR, { recursive: true, force: true });
+    }
     if (!fs.existsSync(TEST_DIR)) {
       fs.mkdirSync(TEST_DIR);
     }

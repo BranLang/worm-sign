@@ -3,6 +3,7 @@ import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default [
+    { ignores: ["tests/temp_research_test/", "dist/", "coverage/"] },
     { files: ["**/*.{js,mjs,cjs,ts}"] },
     { languageOptions: { globals: globals.node } },
     pluginJs.configs.recommended,
