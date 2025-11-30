@@ -30,7 +30,9 @@ jobs:
       run: npm run lint
 
     - name: Build
-      run: npm run build
+      run: |
+        npm run build
+        chmod +x dist/bin/scan.js
 
     - name: Test
       run: npm test

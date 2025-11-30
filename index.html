@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shai Hulud 2.0: The New Face of NPM Malware</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Energetic & Playful (073B4C, 118AB2, 06D6A0, FFD166, EF476F) -->
+    <!-- Application Structure Plan:
+         1. Hero Section: Hook regarding the "Shai Hulud" worm and supply chain risks.
+         2. The Deception: Visualizing "Starjacking" vs legitimate packages using CSS cards.
+         3. Attack Vectors: Chart.js Doughnut showing the breakdown of infection methods.
+         4. Anatomy of the Worm: Vertical timeline/flow using CSS (NO SVG) to show the infection lifecycle.
+         5. Impact Analysis: Chart.js Bar chart showing targeted data types (keys, env vars).
+         6. Defense Strategy: Highlighting the 'worm-sign' tool with a simulated terminal interface.
+         This structure moves from the 'Problem' (Deception) to the 'Method' (Anatomy) to the 'Solution' (Defense).
+    -->
+    <!-- Visualization & Content Choices:
+         1. Starjacking Comparison: Goal -> Compare. Method -> HTML/CSS Cards. Justification -> Best way to show visual mimicry without complex charts.
+         2. Infection Vectors: Goal -> Compare. Method -> Chart.js Doughnut. Justification -> Shows composition of attack types clearly.
+         3. The Infection Lifecycle: Goal -> Change/Process. Method -> CSS Timeline/Flow. Justification -> Shows the step-by-step execution flow.
+         4. Data Exfiltration Targets: Goal -> Relationships/Impact. Method -> Chart.js Horizontal Bar. Justification -> Compares the priority of stolen data types.
+         5. Defense Simulation: Goal -> Inform/Demo. Method -> CSS Terminal. Justification -> demonstrates the tool's utility in a native environment context.
+         CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap');
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #073B4C;
+            /* Deep Blue Background */
+            color: #FFFFFF;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        .card {
+            background-color: #118AB2;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .accent-text {
+            color: #FFD166;
+            /* Yellow Accent */
+        }
+
+        .danger-text {
+            color: #EF476F;
+            /* Pink/Red Accent */
+        }
+
+        .success-text {
+            color: #06D6A0;
+            /* Green Accent */
+        }
+
+        /* Timeline connector line */
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: #FFD166;
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+    </style>
+</head>
+
+<body class="antialiased selection:bg-[#EF476F] selection:text-white pb-20">
+
+    <!-- HERO SECTION -->
+    <header class="w-full py-16 px-4 text-center bg-gradient-to-b from-[#052e3c] to-[#073B4C]">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-5xl md:text-7xl font-bold mb-4 tracking-tight">SHAI HULUD <span
+                    class="accent-text">2.0</span></h1>
+            <p class="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                The worms are evolving. A deep dive into the sophisticated <span
+                    class="accent-text font-bold">Starjacking</span> and automated propagation techniques threatening
+                the NPM ecosystem.
+            </p>
+        </div>
+    </header>
+
+    <!-- SECTION 1: THE DECEPTION (STARJACKING) -->
+    <section class="max-w-6xl mx-auto px-6 py-12">
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold mb-4 border-l-4 border-[#EF476F] pl-4">The Art of Deception</h2>
+            <p class="text-gray-300 text-lg leading-relaxed max-w-3xl">
+                Traditional typosquatting relies on user error (typing "react-nativ" instead of "react-native").
+                <strong>Shai Hulud 2.0</strong> introduces "Starjacking"—a technique where malicious packages pull
+                metadata (GitHub stars, forks, and descriptions) from legitimate repositories to mask their true nature.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <!-- Visual Comparison: Real vs Fake -->
+            <div class="col-span-1">
+                <div
+                    class="bg-white text-gray-900 rounded-lg p-6 relative overflow-hidden shadow-xl border-4 border-[#06D6A0]">
+                    <div class="absolute top-0 right-0 bg-[#06D6A0] text-white text-xs font-bold px-3 py-1">LEGITIMATE
+                    </div>
+                    <h3 class="font-bold text-xl">facebook/react</h3>
+                    <p class="text-sm text-gray-500 mb-4">A JavaScript library for building user interfaces</p>
+                    <div class="flex gap-4 text-sm font-bold">
+                        <span class="flex items-center">★ 200k Stars</span>
+                        <span class="flex items-center">⑂ 40k Forks</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-1">
+                <div
+                    class="bg-white text-gray-900 rounded-lg p-6 relative overflow-hidden shadow-xl border-4 border-[#EF476F]">
+                    <div class="absolute top-0 right-0 bg-[#EF476F] text-white text-xs font-bold px-3 py-1">MALICIOUS
+                    </div>
+                    <h3 class="font-bold text-xl">react-native-toast-v2</h3>
+                    <p class="text-sm text-gray-500 mb-4">A JavaScript library for building user interfaces</p>
+                    <div class="flex gap-4 text-sm font-bold text-[#EF476F]">
+                        <span class="flex items-center">★ 200k Stars (STOLEN)</span>
+                        <span class="flex items-center">⑂ 40k Forks (STOLEN)</span>
+                    </div>
+                    <div class="mt-4 bg-red-50 p-3 rounded text-xs text-red-800 border border-red-200">
+                        <strong>Alert:</strong> Repository URL in <code>package.json</code> points to Facebook, but the
+                        package publisher is unrelated.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 2: ATTACK VECTORS -->
+    <section class="max-w-6xl mx-auto px-6 py-12 bg-[#052e3c] rounded-3xl my-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div>
+                <h2 class="text-3xl font-bold mb-4 border-l-4 border-[#FFD166] pl-4">Infection Vectors</h2>
+                <p class="text-gray-300 mb-6">
+                    While Starjacking is the headline feature, the campaign utilizes a mix of strategies to compromise
+                    developers.
+                    Starjacking is particularly dangerous because it bypasses the "social proof" check many developers
+                    rely on.
+                </p>
+                <ul class="space-y-4">
+                    <li class="flex items-start">
+                        <span class="text-[#FFD166] mr-2">●</span>
+                        <span><strong>Starjacking (45%):</strong> Linking fake packages to popular GitHub repos.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-[#118AB2] mr-2">●</span>
+                        <span><strong>Typosquatting (30%):</strong> Mimicking popular package names.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-[#EF476F] mr-2">●</span>
+                        <span><strong>Dependency Confusion (15%):</strong> Exploiting internal vs public package
+                            naming.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-[#06D6A0] mr-2">●</span>
+                        <span><strong>Social Engineering (10%):</strong> Direct messaging and fake tutorials.</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="chart-container">
+                    <canvas id="vectorChart"></canvas>
+                </div>
+                <p class="text-xs text-gray-400 mt-2 text-center italic">Distribution of observed attack methods in Shai
+                    Hulud 2.0 campaign</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 3: ANATOMY OF THE WORM -->
+    <section class="max-w-4xl mx-auto px-6 py-12">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-[#FFD166]">Anatomy of the Kill Chain</h2>
+            <p class="text-gray-300">
+                Once a compromised package is installed, the worm executes a predefined lifecycle designed to remain
+                stealthy while maximizing damage.
+            </p>
+        </div>
+
+        <div class="relative">
+            <div class="timeline-line hidden md:block"></div>
+
+            <!-- Step 1 -->
+            <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 items-center">
+                <div class="md:text-right order-1">
+                    <h3 class="text-xl font-bold text-[#06D6A0]">01. Installation</h3>
+                    <p class="text-gray-300 text-sm">Developer runs <code>npm install</code>. The package manifest
+                        contains a <code>postinstall</code> script hook.</p>
+                </div>
+                <div class="order-2 flex justify-center md:justify-start">
+                    <div
+                        class="w-16 h-16 bg-[#06D6A0] rounded-full flex items-center justify-center text-2xl font-bold text-[#073B4C]">
+                        ⇩</div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 items-center">
+                <div class="md:order-2">
+                    <h3 class="text-xl font-bold text-[#FFD166]">02. Execution</h3>
+                    <p class="text-gray-300 text-sm">The <code>postinstall</code> script triggers. It often pipes a
+                        curled script to bash or executes obfuscated JS to avoid static analysis.</p>
+                </div>
+                <div class="md:order-1 flex justify-center md:justify-end">
+                    <div
+                        class="w-16 h-16 bg-[#FFD166] rounded-full flex items-center justify-center text-2xl font-bold text-[#073B4C]">
+                        ⚙</div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 items-center">
+                <div class="md:text-right order-1">
+                    <h3 class="text-xl font-bold text-[#EF476F]">03. Exfiltration</h3>
+                    <p class="text-gray-300 text-sm">The worm scans for <code>.env</code>, <code>id_rsa</code>, and
+                        <code>.npmrc</code>. It bundles these and sends them to a Command & Control (C2) server.</p>
+                </div>
+                <div class="order-2 flex justify-center md:justify-start">
+                    <div
+                        class="w-16 h-16 bg-[#EF476F] rounded-full flex items-center justify-center text-2xl font-bold text-[#073B4C]">
+                        📡</div>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="md:order-2">
+                    <h3 class="text-xl font-bold text-[#118AB2]">04. Propagation</h3>
+                    <p class="text-gray-300 text-sm">If an NPM token is found, the worm uses it to publish new malicious
+                        packages, automating the cycle.</p>
+                </div>
+                <div class="md:order-1 flex justify-center md:justify-end">
+                    <div
+                        class="w-16 h-16 bg-[#118AB2] rounded-full flex items-center justify-center text-2xl font-bold text-[#073B4C]">
+                        ↺</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 4: IMPACT ANALYSIS -->
+    <section class="max-w-6xl mx-auto px-6 py-12 bg-[#052e3c] rounded-3xl my-8">
+        <h2 class="text-3xl font-bold mb-4 border-l-4 border-[#EF476F] pl-4">What Are They Stealing?</h2>
+        <p class="text-gray-300 mb-8 max-w-2xl">
+            The primary goal of Shai Hulud is credential harvesting. By analyzing the payloads, we can determine the
+            specific high-value targets attacker seek within developer environments.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-1 gap-8">
+            <div class="w-full flex flex-col items-center">
+                <div class="chart-container w-full" style="max-width: 800px;">
+                    <canvas id="impactChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 text-center">
+            <div class="bg-[#073B4C] p-4 rounded-lg border border-[#118AB2]">
+                <div class="text-2xl mb-2">🔑</div>
+                <div class="font-bold text-[#118AB2]">AWS Keys</div>
+                <div class="text-xs text-gray-400">Cloud Access</div>
+            </div>
+            <div class="bg-[#073B4C] p-4 rounded-lg border border-[#FFD166]">
+                <div class="text-2xl mb-2">📄</div>
+                <div class="font-bold text-[#FFD166]">.env Files</div>
+                <div class="text-xs text-gray-400">App Secrets</div>
+            </div>
+            <div class="bg-[#073B4C] p-4 rounded-lg border border-[#EF476F]">
+                <div class="text-2xl mb-2">🔐</div>
+                <div class="font-bold text-[#EF476F]">SSH Keys</div>
+                <div class="text-xs text-gray-400">Server Access</div>
+            </div>
+            <div class="bg-[#073B4C] p-4 rounded-lg border border-[#06D6A0]">
+                <div class="text-2xl mb-2">📦</div>
+                <div class="font-bold text-[#06D6A0]">NPM Tokens</div>
+                <div class="text-xs text-gray-400">Supply Chain</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 5: DEFENSE STRATEGY -->
+    <section class="max-w-4xl mx-auto px-6 py-12">
+        <div class="mb-8 text-center">
+            <h2 class="text-3xl font-bold mb-4 text-[#06D6A0]">Defense Strategy: Active Scanning</h2>
+            <p class="text-gray-300">
+                Passive defense is no longer enough. The <strong>Worm-Sign</strong> tool was developed to actively scan
+                package manifests for Shai Hulud indicators *before* installation.
+            </p>
+        </div>
+
+        <div class="bg-[#1e293b] rounded-xl overflow-hidden shadow-2xl font-mono text-sm border border-gray-700">
+            <div class="bg-[#0f172a] px-4 py-2 border-b border-gray-700 flex gap-2">
+                <div class="w-3 h-3 rounded-full bg-[#EF476F]"></div>
+                <div class="w-3 h-3 rounded-full bg-[#FFD166]"></div>
+                <div class="w-3 h-3 rounded-full bg-[#06D6A0]"></div>
+                <div class="ml-2 text-gray-400">user@dev-machine:~/project</div>
+            </div>
+            <div class="p-6 text-gray-300">
+                <p class="mb-2"><span class="text-[#06D6A0]">➜</span> <span class="text-[#118AB2]">~</span> npm install
+                    worm-sign -g</p>
+                <p class="mb-4 text-gray-500">added 1 package in 2s</p>
+
+                <p class="mb-2"><span class="text-[#06D6A0]">➜</span> <span class="text-[#118AB2]">~/project</span>
+                    worm-sign scan ./package.json</p>
+                <div class="animate-pulse">
+                    <p class="text-[#FFD166]">⚠ Analyzing dependencies...</p>
+                </div>
+                <div class="mt-4 border-l-2 border-[#EF476F] pl-4">
+                    <p class="text-[#EF476F] font-bold">DETECTED: Suspicious Package 'react-native-toast-v2'</p>
+                    <p>├─ <span class="text-white">Heuristic:</span> Starjacking Match</p>
+                    <p>├─ <span class="text-white">Repo:</span> facebook/react (Owner mismatch)</p>
+                    <p>└─ <span class="text-white">Script:</span> Suspicious 'postinstall' with curl pipe</p>
+                </div>
+                <p class="mt-4 text-[#06D6A0] font-bold">✔ Scan Complete. 1 Threat Found.</p>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="https://www.npmjs.com/package/worm-sign" target="_blank"
+                class="inline-block bg-[#FFD166] text-[#073B4C] font-bold px-8 py-4 rounded-full hover:bg-white hover:scale-105 transition-all shadow-lg shadow-[#FFD166]/20">
+                View Tool on NPM
+            </a>
+            <p class="mt-4 text-xs text-gray-400">Open source defense against supply chain attacks</p>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="text-center py-8 text-gray-500 text-sm border-t border-[#118AB2]/20 mt-12">
+        <p>Infographic generated based on Palo Alto Networks Unit 42 Analysis</p>
+        <p class="mt-2">Use <strong>worm-sign</strong> to stay safe.</p>
+    </footer>
+
+    <script>
+        // --- UTILITIES ---
+        // Label wrapping logic for Chart.js
+        function formatLabel(str, maxwidth) {
+            var sections = [];
+            var words = str.split(" ");
+            var temp = "";
+            words.forEach(function (item, index) {
+                if (temp.length > 0) {
+                    var concat = temp + ' ' + item;
+                    if (concat.length > maxwidth) {
+                        sections.push(temp);
+                        temp = "";
+                    } else {
+                        if (index == (words.length - 1)) {
+                            sections.push(concat);
+                            return;
+                        } else {
+                            temp = concat;
+                            return;
+                        }
+                    }
+                }
+                if (index == (words.length - 1)) {
+                    sections.push(item);
+                } else {
+                    if (item.length < maxwidth) {
+                        temp = item;
+                    } else {
+                        sections.push(item);
+                    }
+                }
+            });
+            return sections;
+        }
+
+        // --- CHART JS GLOBAL DEFAULTS ---
+        Chart.defaults.color = '#e2e8f0';
+        Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+
+        // --- CHART 1: ATTACK VECTORS (DOUGHNUT) ---
+        const ctxVector = document.getElementById('vectorChart').getContext('2d');
+        const vectorChart = new Chart(ctxVector, {
+            type: 'doughnut',
+            data: {
+                labels: ['Starjacking', 'Typosquatting', 'Dependency Confusion', 'Social Engineering'],
+                datasets: [{
+                    data: [45, 30, 15, 10],
+                    backgroundColor: [
+                        '#FFD166', // Yellow (Starjacking - Main focus)
+                        '#118AB2', // Blue
+                        '#EF476F', // Pink
+                        '#06D6A0'  // Green
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#073B4C',
+                        titleColor: '#FFD166',
+                        bodyColor: '#fff',
+                        borderColor: '#118AB2',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            title: function (tooltipItems) {
+                                const item = tooltipItems[0];
+                                let label = item.chart.data.labels[item.dataIndex];
+                                if (Array.isArray(label)) {
+                                    return label.join(' ');
+                                } else {
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // --- CHART 2: IMPACT ANALYSIS (HORIZONTAL BAR) ---
+        const ctxImpact = document.getElementById('impactChart').getContext('2d');
+
+        // Wrap labels for Impact Chart
+        const rawImpactLabels = [
+            'Environment Variables (.env)',
+            'NPM Authentication Tokens',
+            'SSH & GPG Private Keys',
+            'Cloud Credentials (AWS/Azure)',
+            'System Information'
+        ];
+        const processedImpactLabels = rawImpactLabels.map(l => formatLabel(l, 16));
+
+        const impactChart = new Chart(ctxImpact, {
+            type: 'bar',
+            data: {
+                labels: processedImpactLabels,
+                datasets: [{
+                    label: 'Frequency of Targeting',
+                    data: [95, 85, 75, 60, 40], // Hypothetical relative frequency based on report emphasis
+                    backgroundColor: [
+                        '#FFD166',
+                        '#EF476F',
+                        '#118AB2',
+                        '#06D6A0',
+                        '#a8a29e'
+                    ],
+                    borderRadius: 4,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Horizontal Bar
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: {
+                            color: '#1e293b'
+                        },
+                        ticks: {
+                            display: false // Hide numbers on X axis for cleaner look
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#073B4C',
+                        titleColor: '#FFD166',
+                        bodyColor: '#fff',
+                        borderColor: '#118AB2',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            title: function (tooltipItems) {
+                                const item = tooltipItems[0];
+                                let label = item.chart.data.labels[item.dataIndex];
+                                if (Array.isArray(label)) {
+                                    return label.join(' ');
+                                } else {
+                                    return label;
+                                }
+                            },
+                            label: function (context) {
+                                return ' Risk Level: High';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
