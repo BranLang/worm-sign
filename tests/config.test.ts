@@ -1,8 +1,8 @@
 import { loadConfig, defaultConfig } from '../src/config';
-import * as path from 'path';
+
 
 describe('Configuration Loading', () => {
-    const fixturesDir = path.join(__dirname, 'fixtures', 'config');
+
 
     it('should return default config if no config file found', () => {
         const config = loadConfig('/non/existent/path');
