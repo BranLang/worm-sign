@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.3.1] - 2025-11-30
+
+### Changed
+
+- **Metadata**: Updated `package.json` keywords to improve discovery (added `supply-chain`, `devsecops`, `audit`, etc.).
+
 ## [2.3.0] - 2025-11-30
 
 ### Added

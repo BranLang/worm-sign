@@ -50,6 +50,11 @@ Fetch the latest list of vulnerable packages from configured remote sources (e.g
 worm-sign --fetch
 ```
 
+**Configured Remote Sources:**
+
+- **Datadog**: [consolidated_iocs.csv](https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/consolidated_iocs.csv)
+- **Koi**: [export?format=csv](https://docs.google.com/spreadsheets/d/16aw6s7mWoGU7vxBciTEZSaR5HaohlBTfVirvI-PypJc/export?format=csv&gid=1289659284)
+
 ### Custom Data Source
 
 You can also fetch from a custom URL. You must specify the data format (`json` or `csv`).
@@ -203,13 +208,7 @@ Enable verbose logging to troubleshoot issues.
 ```bash
 worm-sign --debug
 ```
-
-**Fetch from specific source:**
-
-```bash
-worm-sign --fetch --source datadog
-```
-----
+---
 
 ## Acknowledgements
 
