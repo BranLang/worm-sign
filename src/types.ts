@@ -27,3 +27,12 @@ export interface ScanMatch {
   version: string;
   section: string;
 }
+
+export type Severity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface Finding {
+  message: string;
+  severity: Severity;
+  ruleId: string;
+  file?: string;
+}

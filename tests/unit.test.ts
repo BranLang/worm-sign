@@ -262,15 +262,15 @@ describe('analyzeScripts', () => {
       },
     };
 
-    const warnings = analyzeScripts(pkgJson);
-    expect(warnings).toHaveLength(7);
-    expect(warnings).toEqual(
+    const findings = analyzeScripts(pkgJson);
+    expect(findings).toHaveLength(7);
+    expect(findings).toEqual(
       expect.arrayContaining([
-        expect.stringContaining('Destructive command'),
-        expect.stringContaining('Network request'),
-        expect.stringContaining('Netcat reverse shell'),
-        expect.stringContaining('Hex escape sequence'),
-        expect.stringContaining('IP address detected'),
+        expect.objectContaining({ message: expect.stringContaining('Destructive command'), severity: 'high' }),
+        expect.objectContaining({ message: expect.stringContaining('Network request'), severity: 'medium' }),
+        expect.objectContaining({ message: expect.stringContaining('Netcat reverse shell'), severity: 'critical' }),
+        expect.objectContaining({ message: expect.stringContaining('Hex escape sequence'), severity: 'high' }),
+        expect.objectContaining({ message: expect.stringContaining('IP address detected'), severity: 'medium' }),
       ]),
     );
   });
@@ -283,7 +283,7 @@ describe('analyzeScripts', () => {
         lint: 'eslint .',
       },
     };
-    const warnings = analyzeScripts(pkgJson);
-    expect(warnings).toHaveLength(0);
+    const findings = analyzeScripts(pkgJson);
+    expect(findings).toHaveLength(0);
   });
 });
