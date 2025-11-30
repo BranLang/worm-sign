@@ -1,14 +1,18 @@
 # Worm Sign 🪱🚫
 
+[![npm provenance](https://img.shields.io/badge/provenance-verified-green)](https://docs.npmjs.com/generating-provenance-statements)
+
 > "We have wormsign the likes of which even God has never seen."
 
 **Worm Sign** is a specialized scanner designed to detect and block npm packages compromised by the **Shai Hulud** malware campaign. It scans your project's `package.json` and lockfiles against a list of known banned packages.
 
 ## Features
 
+- **Safe Static Analysis**: Uses `@npmcli/arborist` to inspect the dependency tree without executing any lifecycle scripts, neutralizing the malware's "Dead Man's Switch".
+- **Signature Obfuscation**: Implements the "Vial" protocol to XOR-encrypt internal signatures, preventing the scanner itself from being flagged by AV/EDR systems.
 - **Detects Shai Hulud**: Identifies packages known to be compromised by the Shai Hulud malware.
 - **Hash-Based Detection**: Detects compromised packages by their integrity hash (SHA-1/SHA-512), catching variants even if they are renamed or version-spoofed.
-- **Lockfile Support**: Scans `package-lock.json`, `yarn.lock`, and `pnpm-lock.yaml`.
+- **Lockfile Required**: Scans `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. **A lockfile is required for analysis.**
 - **API Integration**: Fetches the latest banned list from a remote API (customizable).
 - **Smart Caching**: Caches API responses locally for 1 hour to improve performance.
 - **Heuristic Analysis**: Scans `package.json` scripts for suspicious patterns (e.g., `curl | bash`, `rm -rf`, reverse shells, obfuscated code).
@@ -25,6 +29,14 @@ Worm Sign includes advanced detection logic specifically for the **Shai-Hulud 2.
 - **Destructive Commands**: Flags scripts containing system-wiping commands like `shred -uvz -n 1` (Linux/macOS) and `del /F /Q /S "%USERPROFILE%*"` (Windows).
 - **Installation Vectors**: Detects specific installation patterns used by the malware, such as `irm bun.sh/install.ps1|iex` (PowerShell Bun install).
 - **C2 Signatures**: Scans for known Command & Control signatures like `"Sha1-Hulud: The Second Coming"`.
+
+## Safety & Trust
+
+### 🛡️ "Dead Man's Switch" Neutralization
+Shai-Hulud 2.0 contains a retaliatory wiper that triggers if analysis is detected or network calls fail. **Worm Sign** neutralizes this by using **Safe Static Analysis**. It parses your lockfile directly (using `Arborist.loadVirtual()`) to build an in-memory dependency graph. It **never** runs `npm install` or executes `preinstall`/`postinstall` scripts during scanning, ensuring the malware is never given a chance to execute.
+
+### 🔐 Trusted Publishing
+This package is published with **npm provenance**. You can verify the build attestation on the npm registry to confirm that the package you are installing was built from this specific GitHub repository and has not been tampered with.
 
 ## Installation
 
@@ -49,6 +61,11 @@ Fetch the latest list of vulnerable packages from configured remote sources (e.g
 ```bash
 worm-sign --fetch
 ```
+
+**Configured Remote Sources:**
+
+- **Datadog**: [consolidated_iocs.csv](https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/consolidated_iocs.csv)
+- **Koi**: [export?format=csv](https://docs.google.com/spreadsheets/d/16aw6s7mWoGU7vxBciTEZSaR5HaohlBTfVirvI-PypJc/export?format=csv&gid=1289659284)
 
 ### Custom Data Source
 
@@ -133,20 +150,20 @@ Use the `--offline` flag to disable default remote fetches, and provide your int
 **CSV Example:**
 
 ```bash
-npx worm-sign --offline --url "https://internal.example.com/banned-packages.csv" --data-format csv
+npx worm-sign --offline --url "https://internal.example.com/compromised-packages.csv" --data-format csv
 ```
 
 **JSON Example:**
 
 ```bash
-npx worm-sign --offline --url "https://internal.example.com/banned-packages.json" --data-format json
+npx worm-sign --offline --url "https://internal.example.com/compromised-packages.json" --data-format json
 ```
 
 **Self-Signed Certificates:**
 If your internal server uses a self-signed certificate, use the `--insecure` flag to bypass SSL verification:
 
 ```bash
-npx worm-sign --offline --insecure --url "https://internal.example.com/banned-packages.json" --data-format json
+npx worm-sign --offline --insecure --url "https://internal.example.com/compromised-packages.json" --data-format json
 ```
 
 **If maintaining a fork:**
@@ -162,23 +179,9 @@ npx worm-sign --offline
 
 This will only scan against the local `.csv` files found in the `sources/` directory.
 
-## Acknowledgements
 
-The bundled data sources aggregate findings from various security research teams and community projects, including:
+---
 
-- [DataDog Security Labs](https://securitylabs.datadoghq.com/articles/shai-hulud-2.0-npm-worm/)
-- [Aikido Security](https://www.aikido.dev/blog/shai-hulud-strikes-again-hitting-zapier-ensdomains)
-- [Socket.dev](https://socket.dev/blog/shai-hulud-strikes-again-v2)
-- [GitGuardian](https://blog.gitguardian.com/shai-hulud-2/)
-- [Wiz](https://www.wiz.io/blog/shai-hulud-strikes-again)
-- [Cobenian/shai-hulud-detect](https://github.com/Cobenian/shai-hulud-detect)
-- [Phylum](https://blog.phylum.io/)
-- [Truesec](https://www.truesec.com/hub/blog)
-- [IBM X-Force](https://www.ibm.com/x-force)
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Command Line Options Reference
 
@@ -217,9 +220,22 @@ Enable verbose logging to troubleshoot issues.
 ```bash
 worm-sign --debug
 ```
+---
 
-**Fetch from specific source:**
+## Acknowledgements
 
-```bash
-worm-sign --fetch --source datadog
-```
+The bundled data sources aggregate findings from various security research teams and community projects, including:
+
+- [DataDog Security Labs](https://securitylabs.datadoghq.com/articles/shai-hulud-2.0-npm-worm/)
+- [Aikido Security](https://www.aikido.dev/blog/shai-hulud-strikes-again-hitting-zapier-ensdomains)
+- [Socket.dev](https://socket.dev/blog/shai-hulud-strikes-again-v2)
+- [GitGuardian](https://blog.gitguardian.com/shai-hulud-2/)
+- [Wiz](https://www.wiz.io/blog/shai-hulud-strikes-again)
+- [Cobenian/shai-hulud-detect](https://github.com/Cobenian/shai-hulud-detect)
+- [Phylum](https://blog.phylum.io/)
+- [Truesec](https://www.truesec.com/hub/blog)
+- [IBM X-Force](https://www.ibm.com/x-force)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

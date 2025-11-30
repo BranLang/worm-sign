@@ -27,7 +27,7 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
       };
       const warnings = analyzeScripts(pkg);
       expect(warnings).toContain(
-        "Suspicious script detected in 'cleanup': Destructive command (shred -uvz -n 1) - Shai Hulud Wiper",
+        "Suspicious script detected in 'cleanup': Known Malware Signature Match",
       );
     });
 
@@ -39,7 +39,7 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
       };
       const warnings = analyzeScripts(pkg);
       expect(warnings).toContain(
-        "Suspicious script detected in 'cleanup': Destructive command (Windows Profile Wiper) - Shai Hulud",
+        "Suspicious script detected in 'cleanup': Known Malware Signature Match",
       );
     });
 
@@ -51,7 +51,7 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
       };
       const warnings = analyzeScripts(pkg);
       expect(warnings).toContain(
-        "Suspicious script detected in 'install': PowerShell Bun Install (Shai Hulud Dropper)",
+        "Suspicious script detected in 'install': Known Malware Signature Match",
       );
     });
 
@@ -62,8 +62,9 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
         },
       };
       const warnings = analyzeScripts(pkg);
+      // "The Second Coming" is in the signatures list
       expect(warnings).toContain(
-        "Suspicious script detected in 'postinstall': Shai Hulud C2 Signature",
+        "Suspicious script detected in 'postinstall': Known Malware Signature Match",
       );
     });
   });

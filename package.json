@@ -1,6 +1,6 @@
 {
   "name": "worm-sign",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "description": "A prescient scanner to detect and banish Shai Hulud malware from your dependencies.",
   "main": "dist/src/index.js",
   "bin": {
@@ -8,9 +8,10 @@
   },
   "scripts": {
     "test": "jest",
-    "test:smoke": "ts-node smoke_test.ts",
+    "test:smoke": "ts-node scripts/smoke_test.ts",
     "lint": "eslint src bin tests",
     "format": "prettier --write src bin tests",
+    "prebuild": "ts-node scripts/encrypt-signatures.ts",
     "build": "tsc",
     "start": "node dist/bin/scan.js",
     "dev": "ts-node bin/scan.ts",
@@ -19,10 +20,23 @@
   "keywords": [
     "security",
     "scanner",
-    "banned-packages",
+    "malware",
+    "shai-hulud",
+    "worm",
+    "vulnerabilities",
     "npm",
     "yarn",
-    "pnpm"
+    "pnpm",
+    "supply-chain",
+    "devsecops",
+    "audit",
+    "lockfile",
+    "integrity",
+    "analysis",
+    "heuristics",
+    "entropy",
+    "ci",
+    "github-actions"
   ],
   "files": [
     "dist",
@@ -40,6 +54,7 @@
   },
   "homepage": "https://github.com/BranLang/worm-sign#readme",
   "dependencies": {
+    "@npmcli/arborist": "^9.1.8",
     "@yarnpkg/lockfile": "^1.1.0",
     "boxen": "^8.0.1",
     "chalk": "^5.6.2",
@@ -59,6 +74,7 @@
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.10.1",
+    "@types/npmcli__arborist": "^6.3.1",
     "@types/ora": "^3.1.0",
     "eslint": "^9.39.1",
     "globals": "^16.5.0",

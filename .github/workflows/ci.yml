@@ -45,3 +45,5 @@ jobs:
 
     - name: Run Worm Sign
       run: node dist/bin/scan.js --offline --format sarif
+
+  

@@ -44,3 +44,10 @@ verify_installs/
 
 # Test Output
 test_output/
+
+# Research
+.research/
+
+# Reports and Output
+reports/
+output.json
