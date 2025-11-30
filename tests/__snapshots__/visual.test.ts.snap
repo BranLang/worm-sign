@@ -9,7 +9,8 @@ name/version and hash detection).
 Options:
   -V, --version           output the version number
   -f, --fetch             Fetch the latest banned packages from the API
-  --offline               Disable fetching of remote sources
+  -s, --source <source>   Data source to fetch from (ibm, koi, datadog, all)
+                          (default: "all")
   -u, --url <url>         Custom API URL to fetch banned packages from
   --data-format <format>  Data format for custom URL (json, csv) (default:
                           "json")
@@ -19,8 +20,7 @@ Options:
   --no-cache              Disable caching of API responses
   --install-hook          Install a pre-commit hook to run worm-sign
   --dry-run               Run scan but always exit with 0 (useful for CI)
-  --insecure              Disable SSL certificate verification (use with
-                          caution)
+  --offline               Disable network requests (implies --no-fetch)
   --debug                 Enable debug logging
   -h, --help              display help for command
 "

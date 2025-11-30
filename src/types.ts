@@ -14,7 +14,7 @@ export interface PackageManagerHandler {
   loadLockPackages(lockPath: string): LockPackageResult;
 }
 
-export interface BannedPackage {
+export interface CompromisedPackage {
   name: string;
   version: string;
   reason?: string;

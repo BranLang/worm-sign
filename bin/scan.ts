@@ -3,7 +3,9 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { program } from 'commander';
-import { scanProject, fetchBannedPackages, loadCsv, loadJson } from '../src/index';
+import { scanProject, fetchBannedPackages, loadJson, SOURCES } from '../src/index';
+import { loadCsv } from '../src/utils/csv';
+
 // @ts-ignore
 import pkg from '../package.json';
 
@@ -42,13 +44,10 @@ function resolveDataDir(): string {
 
 program
   .name('worm-sign')
-  .description(
-    'Scan your project for packages compromised by the Shai Hulud malware (supports name/version and hash detection).',
-  )
+  .description('Scan your project for packages compromised by the Shai Hulud malware (supports name/version and hash detection).')
   .version(version)
   .option('-f, --fetch', 'Fetch the latest banned packages from the API')
-
-  .option('--offline', 'Disable fetching of remote sources')
+  .option('-s, --source <source>', 'Data source to fetch from (ibm, koi, datadog, all)', 'all')
   .option('-u, --url <url>', 'Custom API URL to fetch banned packages from')
   .option('--data-format <format>', 'Data format for custom URL (json, csv)', 'json')
   .option('-p, --path <path>', 'Path to the project to scan (defaults to current directory)')
@@ -56,9 +55,14 @@ program
   .option('--no-cache', 'Disable caching of API responses')
   .option('--install-hook', 'Install a pre-commit hook to run worm-sign')
   .option('--dry-run', 'Run scan but always exit with 0 (useful for CI)')
+  .option('--offline', 'Disable network requests (implies --no-fetch)')
   .option('--insecure', 'Disable SSL certificate verification (use with caution)')
   .option('--debug', 'Enable debug logging')
   .action(async (options) => {
+    if (options.offline) {
+      options.fetch = false;
+    }
+
     // Dynamic imports for ESM libraries
     const { default: chalk } = await import('chalk');
     const { default: ora } = await import('ora');
@@ -121,6 +125,12 @@ npx worm-sign --fetch
           const filePath = path.join(sourcesDir, file);
           try {
             if (file.endsWith('.csv')) {
+              // Only load the master list if it exists, or individual files if not?
+              // The requirement is to consolidate. So we should prefer known-threats.csv
+              // But for now, the loop loads ALL csvs.
+              // If we only want known-threats.csv, we should filter.
+              // However, the user might have other custom CSVs.
+              // Let's keep loading all CSVs but maybe log specific message for the master file.
               const packages = loadCsv(filePath);
               if (packages.length > 0) {
                 allBanned.push(...packages);
@@ -166,6 +176,17 @@ npx worm-sign --fetch
           name: 'custom-cli',
           insecure: options.insecure,
         });
+      } else if (options.fetch && !options.offline) {
+        // If no custom URL, check options.source
+        if (options.source === 'all') {
+          Object.entries(SOURCES).forEach(([name, config]) => {
+            sourcesToFetch.push({ ...config, name });
+          });
+        } else if (SOURCES[options.source]) {
+          sourcesToFetch.push({ ...SOURCES[options.source], name: options.source });
+        } else {
+          throw new Error(`Unknown source '${options.source}'. Available: ${Object.keys(SOURCES).join(', ')}, all`);
+        }
       }
 
       // 3. Fetch remote sources
@@ -173,6 +194,11 @@ npx worm-sign --fetch
       // Note: Default remote sources are skipped above if --offline is set,
       // but custom --url is always added to sourcesToFetch.
       if (sourcesToFetch.length > 0) {
+        // Apply global insecure flag
+        if (options.insecure) {
+          sourcesToFetch.forEach((s) => (s.insecure = true));
+        }
+
         const spinner =
           options.format === 'text'
             ? ora(`Fetching from ${sourcesToFetch.length} remote source(s)...`).start()
@@ -239,17 +265,6 @@ npx worm-sign --fetch
       const { matches, warnings } = await scanProject(projectRoot, bannedListSource, {
         debug: options.debug,
       });
-
-      let reporter;
-      try {
-        reporter = await import(`../src/reporters/${options.format}.js`);
-      } catch {
-        console.error(chalk.red(`Error: Unknown format '${options.format}'`));
-        process.exit(1);
-      }
-
-      const output = reporter.report(matches, warnings, projectRoot, { chalk, boxen });
-      console.log(output);
 
       if (matches.length > 0) {
         if (options.dryRun) {

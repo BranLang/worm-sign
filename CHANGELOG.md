@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.3.0] - 2025-11-30
+
+### Added
+
+- **Consolidated Sources**: Consolidated all local banned package sources into a single `sources/known-threats.csv` file (2211 unique packages).
+- **Source Management**: Added `scripts/add-source.ts` utility to easily add new sources (URL or file) to the master list with deduplication.
+- **Offline Mode**: Added `--offline` flag to explicitly disable network requests (implies `--no-fetch`).
+- **SSL Bypass**: Added `--insecure` flag to disable SSL certificate verification (use with caution, primarily for internal corporate networks).
+
+### Changed
+
+- **Refactoring**: Extracted CSV parsing logic to `src/utils/csv.ts` for better code reuse and robustness.
+- **Gitignore**: Updated `.gitignore` to exclude archived sources (`sources/archive/`), verification folders (`verify_installs/`), and test output (`test_output/`).
+- **Source Updates**: Updated `datadog` and `koi` source URLs in `src/index.ts`.
+
+### Fixed
+
+- **CLI Execution**: Fixed `ts-node` execution issues in `bin/scan.ts` by ensuring correct reporter import paths and handling.
+- **CSV Parsing**: Improved robustness of CSV parsing to handle various column names and formats.
+
 ## [2.2.0] - 2025-11-28
 
 ### Added

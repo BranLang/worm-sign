@@ -7,26 +7,23 @@ import { parse } from 'csv-parse/sync';
 import pnpm from './package-managers/pnpm';
 import yarn from './package-managers/yarn';
 import npm from './package-managers/npm';
-import { BannedPackage, PackageManagerHandler, ScanMatch } from './types';
+import { CompromisedPackage, PackageManagerHandler, ScanMatch } from './types';
 import { validateUrl } from './utils/validators';
 
 const packageManagers: PackageManagerHandler[] = [pnpm, yarn, npm];
 
-export function loadCsv(filePath: string): BannedPackage[] {
-  const raw = fs.readFileSync(filePath, 'utf8');
-  return parseCsv(raw);
-}
+import { loadCsv, parseCsv } from './utils/csv';
 
-export function loadJson(filePath: string): BannedPackage[] {
+export function loadJson(filePath: string): CompromisedPackage[] {
   const raw = fs.readFileSync(filePath, 'utf8');
   try {
     const json = JSON.parse(raw);
     if (Array.isArray(json)) {
       // Handle array of packages directly
-      return json as BannedPackage[];
+      return json as CompromisedPackage[];
     }
     if (json.packages && Array.isArray(json.packages)) {
-      return json.packages as BannedPackage[];
+      return json.packages as CompromisedPackage[];
     }
     console.warn(
       `Warning: JSON at ${filePath} does not contain a "packages" array or is not an array.`,
@@ -38,64 +35,6 @@ export function loadJson(filePath: string): BannedPackage[] {
   }
 }
 
-function parseCsv(raw: string): BannedPackage[] {
-  try {
-    parse(raw, {
-      columns: ['name', 'version', 'reason'],
-      skip_empty_lines: true,
-      relax_column_count: true,
-      trim: true,
-      from_line: 2, // Skip header assuming standard format, or we can use columns: true if header is reliable
-    });
-    // If columns option is used, records are objects.
-    // However, the input CSV might vary.
-    // The original code handled "package name,package version" header.
-    // Let's use a more robust approach:
-    // If we use columns: true, it uses the first line as header.
-    // But the header might be "package name" or "name".
-
-    // Let's stick to the original logic's intent but use csv-parse for tokenization.
-    // Actually, let's use columns: true and map keys.
-
-    const parsed = parse(raw, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-      relax_column_count: true,
-      comment: '#',
-    });
-
-    return parsed
-      .map((record: any) => {
-        // Try to find name and version fields
-        const name =
-          record['package name'] ||
-          record['name'] ||
-          record['Package Name'] ||
-          record['package_name'] ||
-          Object.values(record)[0];
-        const version =
-          record['package version'] ||
-          record['version'] ||
-          record['Package Version'] ||
-          record['package_version'] ||
-          Object.values(record)[1] ||
-          '';
-        const reason = record['MSC ID'] || record['reason'] || '';
-        const integrity = record['integrity'] || record['hash'] || record['shasum'] || undefined;
-
-        return { name, version, reason, integrity };
-      })
-      .filter((p: any) => !!p.name) as BannedPackage[];
-  } catch (e) {
-    // Fallback or rethrow?
-    // If strict parsing fails, maybe try simple split?
-    // But we want to fix the vulnerability, so we should rely on the parser.
-    console.warn('CSV parse warning:', e);
-    return [];
-  }
-}
-
 export interface SourceConfig {
   url: string;
   type: 'json' | 'csv';
@@ -103,17 +42,35 @@ export interface SourceConfig {
   insecure?: boolean;
 }
 
+export const SOURCES: Record<string, SourceConfig> = {
+  datadog: {
+    url: 'https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/consolidated_iocs.csv',
+    type: 'csv',
+  },
+  koi: {
+    url: 'https://docs.google.com/spreadsheets/d/16aw6s7mWoGU7vxBciTEZSaR5HaohlBTfVirvI-PypJc/export?format=csv&gid=1289659284',
+    type: 'csv',
+  },
+  // TODO: Update IBM URL as it is currently returning 404
+  /*
+  ibm: {
+    url: 'https://raw.githubusercontent.com/IBM/security-intelligence/master/threat-intel/shai-hulud.csv',
+    type: 'csv',
+  },
+  */
+};
+
 export function fetchFromApi(sourceConfig: {
   url: string;
   type: string;
   insecure?: boolean;
-}): Promise<BannedPackage[]> {
+}): Promise<CompromisedPackage[]> {
   const { url, type, insecure } = sourceConfig;
   if (!url || !type) {
     return Promise.reject(new Error('Invalid source configuration: missing url or type'));
   }
 
-  const fetchUrl = async (targetUrl: string, attempt = 1): Promise<BannedPackage[]> => {
+  const fetchUrl = async (targetUrl: string, attempt = 1): Promise<CompromisedPackage[]> => {
     // SSRF Protection
     await validateUrl(targetUrl);
 
@@ -185,10 +142,10 @@ export function fetchFromApi(sourceConfig: {
   return fetchUrl(url);
 }
 
-export async function fetchBannedPackages(
+export async function fetchCompromisedPackages(
   sources: SourceConfig[],
-): Promise<{ packages: BannedPackage[]; errors: string[] }> {
-  const allPackages: BannedPackage[] = [];
+): Promise<{ packages: CompromisedPackage[]; errors: string[] }> {
+  const allPackages: CompromisedPackage[] = [];
   const errors: string[] = [];
 
   for (const config of sources) {
@@ -207,7 +164,7 @@ export async function fetchBannedPackages(
   }
 
   // Deduplicate
-  const uniqueMap = new Map<string, BannedPackage>();
+  const uniqueMap = new Map<string, CompromisedPackage>();
   allPackages.forEach((p) => {
     const key = `${p.name}@${p.version}`;
     if (!uniqueMap.has(key)) {
@@ -234,14 +191,14 @@ function collectPackages(pkgJson: any): Map<string, { section: string; version: 
   return results;
 }
 
-interface BannedInfo {
+interface CompromisedInfo {
   versions: Set<string>;
   wildcard: boolean;
   hashes: Set<string>;
 }
 
-function buildBannedMap(entries: BannedPackage[]): Map<string, BannedInfo> {
-  const map = new Map<string, BannedInfo>();
+function buildCompromisedMap(entries: CompromisedPackage[]): Map<string, CompromisedInfo> {
+  const map = new Map<string, CompromisedInfo>();
   for (const { name, version } of entries) {
     if (!name) continue;
     const info = map.get(name) ?? { versions: new Set(), wildcard: false, hashes: new Set() };
@@ -262,18 +219,18 @@ function buildBannedMap(entries: BannedPackage[]): Map<string, BannedInfo> {
 }
 
 function shouldFlag(
-  bannedInfo: BannedInfo | undefined,
+  compromisedInfo: CompromisedInfo | undefined,
   version: string,
   integrity?: string,
 ): boolean {
-  if (!bannedInfo) return false;
-  if (bannedInfo.wildcard) return true;
-  if (bannedInfo.versions.has(version)) return true;
-  if (integrity && bannedInfo.hashes.size > 0) {
+  if (!compromisedInfo) return false;
+  if (compromisedInfo.wildcard) return true;
+  if (compromisedInfo.versions.has(version)) return true;
+  if (integrity && compromisedInfo.hashes.size > 0) {
     // Check if any banned hash matches the package integrity
     // Integrity strings are usually "algo-hash", e.g. "sha512-..."
     // We should check if the banned hash is contained in the integrity string
-    for (const hash of bannedInfo.hashes) {
+    for (const hash of compromisedInfo.hashes) {
       if (integrity.includes(hash)) return true;
     }
   }
@@ -382,16 +339,16 @@ export function analyzeScripts(pkgJson: any): string[] {
 }
 
 /**
- * Scans the project for banned packages.
+ * Scans the project for compromised packages.
  * @param {string} projectRoot - The root directory of the project.
- * @param {string|Array} bannedListSource - Path to the CSV file OR an array of banned package objects.
+ * @param {string|Array} compromisedListSource - Path to the CSV file OR an array of compromised package objects.
  * @param {Object} [options] - Optional settings.
  * @param {boolean} [options.debug] - Enable debug logging.
  * @returns {Promise<{ matches: Array<{name: string, version: string, section: string}>, warnings: string[] }>}
  */
 export async function scanProject(
   projectRoot: string,
-  bannedListSource: string | BannedPackage[],
+  compromisedListSource: string | CompromisedPackage[],
   options?: { debug?: boolean },
 ) {
   const debug = (msg: string) => {
@@ -411,16 +368,16 @@ export async function scanProject(
   const packageJsonPath = path.join(resolvedRoot, 'package.json');
   const allWarnings: string[] = [];
 
-  let bannedEntries: BannedPackage[];
-  if (Array.isArray(bannedListSource)) {
-    bannedEntries = bannedListSource;
-  } else if (typeof bannedListSource === 'string') {
-    if (!fs.existsSync(bannedListSource)) {
-      throw new Error(`Banned list not found at ${bannedListSource}`);
+  let compromisedEntries: CompromisedPackage[];
+  if (Array.isArray(compromisedListSource)) {
+    compromisedEntries = compromisedListSource;
+  } else if (typeof compromisedListSource === 'string') {
+    if (!fs.existsSync(compromisedListSource)) {
+      throw new Error(`Compromised list not found at ${compromisedListSource}`);
     }
-    bannedEntries = loadCsv(bannedListSource);
+    compromisedEntries = loadCsv(compromisedListSource);
   } else {
-    throw new Error('Invalid banned list source. Must be a file path or an array.');
+    throw new Error('Invalid compromised list source. Must be a file path or an array.');
   }
 
   if (!fs.existsSync(packageJsonPath)) {
@@ -465,7 +422,7 @@ export async function scanProject(
     }
   }
 
-  const bannedMap = buildBannedMap(bannedEntries);
+  const compromisedMap = buildCompromisedMap(compromisedEntries);
   const declaredPackages = collectPackages(packageJson);
   debug(`Found ${declaredPackages.size} declared dependencies.`);
 
@@ -505,7 +462,7 @@ export async function scanProject(
   const matches: ScanMatch[] = [];
   const seen = new Set();
 
-  for (const [name, info] of bannedMap.entries()) {
+  for (const [name, info] of compromisedMap.entries()) {
     const versions = lockPackages.get(name);
     if (!versions || versions.size === 0) continue;
 
