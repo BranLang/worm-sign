@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { loadCsv, parseCsv } from '../src/utils/csv';
 import { fetchFromApi } from '../src/index';
-import { BannedPackage } from '../src/types';
+import { CompromisedPackage } from '../src/types';
 import { stringify } from 'csv-stringify/sync';
 
 const sourcesDir = path.join(__dirname, '../sources');
@@ -11,7 +11,7 @@ const outputFile = path.join(sourcesDir, 'known-threats.csv');
 async function addSource(source: string) {
     console.log(`Adding source: ${source}`);
 
-    let newPackages: BannedPackage[] = [];
+    let newPackages: CompromisedPackage[] = [];
 
     if (source.startsWith('http')) {
         try {
@@ -35,7 +35,7 @@ async function addSource(source: string) {
     console.log(`Loaded ${newPackages.length} new packages.`);
 
     // Load existing
-    let existingPackages: BannedPackage[] = [];
+    let existingPackages: CompromisedPackage[] = [];
     if (fs.existsSync(outputFile)) {
         console.log('Loading existing known-threats.csv...');
         existingPackages = loadCsv(outputFile);
@@ -45,7 +45,7 @@ async function addSource(source: string) {
     console.log(`Total packages before deduplication: ${allPackages.length}`);
 
     // Deduplicate
-    const uniqueMap = new Map<string, BannedPackage>();
+    const uniqueMap = new Map<string, CompromisedPackage>();
     allPackages.forEach(p => {
         const key = `${p.name}@${p.version}`;
         if (!uniqueMap.has(key)) {

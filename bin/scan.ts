@@ -3,8 +3,9 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { program } from 'commander';
-import { scanProject, fetchBannedPackages, loadJson, SOURCES } from '../src/index';
+import { scanProject, fetchCompromisedPackages, loadJson, SOURCES, SourceConfig } from '../src/index';
 import { loadCsv } from '../src/utils/csv';
+import { CompromisedPackage } from '../src/types';
 
 // @ts-ignore
 import pkg from '../package.json';
@@ -46,9 +47,9 @@ program
   .name('worm-sign')
   .description('Scan your project for packages compromised by the Shai Hulud malware (supports name/version and hash detection).')
   .version(version)
-  .option('-f, --fetch', 'Fetch the latest banned packages from the API')
+  .option('-f, --fetch', 'Fetch the latest compromised packages from the API')
   .option('-s, --source <source>', 'Data source to fetch from (ibm, koi, datadog, all)', 'all')
-  .option('-u, --url <url>', 'Custom API URL to fetch banned packages from')
+  .option('-u, --url <url>', 'Custom API URL to fetch compromised packages from')
   .option('--data-format <format>', 'Data format for custom URL (json, csv)', 'json')
   .option('-p, --path <path>', 'Path to the project to scan (defaults to current directory)')
   .option('--format <format>', 'Output format (text, sarif)', 'text')
@@ -114,8 +115,8 @@ npx worm-sign --fetch
       const dataDir = resolveDataDir();
       const sourcesDir = path.join(dataDir, 'sources');
 
-      const allBanned: any[] = [];
-      const sourcesToFetch: any[] = [];
+      const allCompromised: CompromisedPackage[] = [];
+      const sourcesToFetch: SourceConfig[] = [];
       let foundSources = false;
 
       // 1. Load from sources directory
@@ -133,7 +134,7 @@ npx worm-sign --fetch
               // Let's keep loading all CSVs but maybe log specific message for the master file.
               const packages = loadCsv(filePath);
               if (packages.length > 0) {
-                allBanned.push(...packages);
+                allCompromised.push(...packages);
                 foundSources = true;
                 if (options.format === 'text') {
                   console.log(chalk.blue(`Loaded ${packages.length} packages from: ${file}`));
@@ -146,7 +147,7 @@ npx worm-sign --fetch
                 if (Array.isArray(json) || (json.packages && Array.isArray(json.packages))) {
                   const packages = loadJson(filePath);
                   if (packages.length > 0) {
-                    allBanned.push(...packages);
+                    allCompromised.push(...packages);
                     foundSources = true;
                     if (options.format === 'text') {
                       console.log(chalk.blue(`Loaded ${packages.length} packages from: ${file}`));
@@ -212,8 +213,8 @@ npx worm-sign --fetch
             // Or we can try to load cache.
           }
 
-          const { packages: fetchedPackages, errors } = await fetchBannedPackages(sourcesToFetch);
-          allBanned.push(...fetchedPackages);
+          const { packages: fetchedPackages, errors } = await fetchCompromisedPackages(sourcesToFetch);
+          allCompromised.push(...fetchedPackages);
           foundSources = true;
 
           if (spinner) {
@@ -232,7 +233,7 @@ npx worm-sign --fetch
             errors.forEach((e) => console.warn(chalk.yellow(`Warning: ${e}`)));
           }
         } catch (error: any) {
-          // This catch block might not be reached anymore unless fetchBannedPackages throws unexpected error
+          // This catch block might not be reached anymore unless fetchCompromisedPackages throws unexpected error
           if (spinner) {
             spinner.fail(chalk.red(`Error: Unexpected failure during fetch: ${error.message}`));
           }
@@ -244,25 +245,25 @@ npx worm-sign --fetch
         const legacyPath = path.join(dataDir, 'vuls.csv');
         if (fs.existsSync(legacyPath)) {
           const packages = loadCsv(legacyPath);
-          allBanned.push(...packages);
+          allCompromised.push(...packages);
           foundSources = true;
           if (options.format === 'text') {
-            console.log(chalk.blue(`Using local banned list: ${legacyPath}`));
+            console.log(chalk.blue(`Using local compromised list: ${legacyPath}`));
           }
         }
       }
 
-      if (!foundSources && allBanned.length === 0) {
-        console.warn(chalk.yellow('Warning: No banned packages loaded. Scan will likely pass.'));
+      if (!foundSources && allCompromised.length === 0) {
+        console.warn(chalk.yellow('Warning: No compromised packages loaded. Scan will likely pass.'));
       }
 
-      const bannedListSource = allBanned;
+      const compromisedListSource = allCompromised;
 
       if (options.format === 'text') {
         console.log(chalk.blue(`Scanning project at: ${projectRoot}`));
       }
 
-      const { matches, warnings } = await scanProject(projectRoot, bannedListSource, {
+      const { matches, warnings } = await scanProject(projectRoot, compromisedListSource, {
         debug: options.debug,
       });
 

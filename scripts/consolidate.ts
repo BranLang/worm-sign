@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { loadCsv } from '../src/utils/csv';
-import { BannedPackage } from '../src/types';
+import { CompromisedPackage } from '../src/types';
 import { stringify } from 'csv-stringify/sync';
 
 const sourcesDir = path.join(__dirname, '../sources');
@@ -11,7 +11,7 @@ function consolidate() {
     console.log('Consolidating CSV sources...');
     const files = fs.readdirSync(sourcesDir).filter(f => f.endsWith('.csv') && f !== 'known-threats.csv');
 
-    const allPackages: BannedPackage[] = [];
+    const allPackages: CompromisedPackage[] = [];
 
     for (const file of files) {
         console.log(`Loading ${file}...`);
@@ -23,7 +23,7 @@ function consolidate() {
     console.log(`Total packages loaded: ${allPackages.length}`);
 
     // Deduplicate
-    const uniqueMap = new Map<string, BannedPackage>();
+    const uniqueMap = new Map<string, CompromisedPackage>();
     allPackages.forEach(p => {
         const key = `${p.name}@${p.version}`;
         if (!uniqueMap.has(key)) {
