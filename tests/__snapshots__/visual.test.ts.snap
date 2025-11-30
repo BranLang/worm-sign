@@ -8,10 +8,9 @@ name/version and hash detection).
 
 Options:
   -V, --version           output the version number
-  -f, --fetch             Fetch the latest banned packages from the API
-  -s, --source <source>   Data source to fetch from (ibm, koi, datadog, all)
-                          (default: "all")
-  -u, --url <url>         Custom API URL to fetch banned packages from
+  -f, --fetch             Fetch the latest compromised packages from the API
+  -s, --source <source>   Specific data source to fetch from (default: "all")
+  -u, --url <url>         Custom API URL to fetch compromised packages from
   --data-format <format>  Data format for custom URL (json, csv) (default:
                           "json")
   -p, --path <path>       Path to the project to scan (defaults to current
@@ -21,12 +20,14 @@ Options:
   --install-hook          Install a pre-commit hook to run worm-sign
   --dry-run               Run scan but always exit with 0 (useful for CI)
   --offline               Disable network requests (implies --no-fetch)
+  --insecure              Disable SSL certificate verification (use with
+                          caution)
   --debug                 Enable debug logging
   -h, --help              display help for command
 "
 `;
 
 exports[`Visual Output Snapshots should match snapshot for version command 1`] = `
-"2.2.0
+"2.3.0
 "
 `;

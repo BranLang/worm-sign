@@ -4,6 +4,7 @@ import * as sarifReporter from '../src/reporters/sarif';
 import { ScanMatch } from '../src/types';
 
 // Mock chalk and boxen
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockChalk: any = {
   yellow: Object.assign((s: string) => s, { bold: (s: string) => s }),
   green: Object.assign((s: string) => s, { bold: (s: string) => s }),

@@ -9,6 +9,8 @@
 - **New Intelligence**: Added 27 new compromised packages related to Shai Hulud 2.0 (Sept/Nov 2025 attacks) including `@zapier/zapier-sdk` and `@posthog/agent`.
 - **Offline Mode**: Added `--offline` flag to explicitly disable network requests (implies `--no-fetch`).
 - **SSL Bypass**: Added `--insecure` flag to disable SSL certificate verification (use with caution, primarily for internal corporate networks).
+- **Advanced Heuristics**: Added entropy analysis to detect high-entropy obfuscated files (>5MB).
+- **Behavioral Detection**: Added detection for destructive commands (`shred`, `del`), PowerShell Bun installation vectors, and C2 signatures.
 
 ### Changed
 

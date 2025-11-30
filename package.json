@@ -11,7 +11,7 @@
     "test:smoke": "ts-node smoke_test.ts",
     "lint": "eslint src bin tests",
     "format": "prettier --write src bin tests",
-    "build": "tsc && chmod +x dist/bin/scan.js",
+    "build": "tsc",
     "start": "node dist/bin/scan.js",
     "dev": "ts-node bin/scan.ts",
     "prepare": "husky"

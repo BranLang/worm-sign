@@ -3,11 +3,16 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { program } from 'commander';
-import { scanProject, fetchCompromisedPackages, loadJson, SOURCES, SourceConfig } from '../src/index';
+import {
+  scanProject,
+  fetchCompromisedPackages,
+  loadJson,
+  SOURCES,
+  SourceConfig,
+} from '../src/index';
 import { loadCsv } from '../src/utils/csv';
-import { CompromisedPackage } from '../src/types';
-
-// @ts-ignore
+import { CompromisedPackage, ScanMatch } from '../src/types';
+import { generateSarif } from '../src/formatters/sarif';
 import pkg from '../package.json';
 
 const version = pkg.version;
@@ -45,10 +50,12 @@ function resolveDataDir(): string {
 
 program
   .name('worm-sign')
-  .description('Scan your project for packages compromised by the Shai Hulud malware (supports name/version and hash detection).')
+  .description(
+    'Scan your project for packages compromised by the Shai Hulud malware (supports name/version and hash detection).',
+  )
   .version(version)
   .option('-f, --fetch', 'Fetch the latest compromised packages from the API')
-  .option('-s, --source <source>', 'Data source to fetch from (ibm, koi, datadog, all)', 'all')
+  .option('-s, --source <source>', 'Specific data source to fetch from', 'all')
   .option('-u, --url <url>', 'Custom API URL to fetch compromised packages from')
   .option('--data-format <format>', 'Data format for custom URL (json, csv)', 'json')
   .option('-p, --path <path>', 'Path to the project to scan (defaults to current directory)')
@@ -92,8 +99,9 @@ npx worm-sign --fetch
         console.log(chalk.green('✅ Pre-commit hook installed successfully!'));
         console.log(chalk.dim('worm-sign will now run before every commit.'));
         process.exit(0);
-      } catch (error: any) {
-        console.error(chalk.red(`Error installing hook: ${error.message}`));
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red(`Error installing hook: ${msg}`));
         process.exit(1);
       }
     }
@@ -126,12 +134,6 @@ npx worm-sign --fetch
           const filePath = path.join(sourcesDir, file);
           try {
             if (file.endsWith('.csv')) {
-              // Only load the master list if it exists, or individual files if not?
-              // The requirement is to consolidate. So we should prefer known-threats.csv
-              // But for now, the loop loads ALL csvs.
-              // If we only want known-threats.csv, we should filter.
-              // However, the user might have other custom CSVs.
-              // Let's keep loading all CSVs but maybe log specific message for the master file.
               const packages = loadCsv(filePath);
               if (packages.length > 0) {
                 allCompromised.push(...packages);
@@ -163,8 +165,9 @@ npx worm-sign --fetch
                 console.warn(chalk.yellow(`Warning: Failed to parse JSON ${file}: ${e}`));
               }
             }
-          } catch (e: any) {
-            console.warn(chalk.yellow(`Warning: Failed to load ${file}: ${e.message}`));
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.warn(chalk.yellow(`Warning: Failed to load ${file}: ${msg}`));
           }
         }
       }
@@ -186,16 +189,14 @@ npx worm-sign --fetch
         } else if (SOURCES[options.source]) {
           sourcesToFetch.push({ ...SOURCES[options.source], name: options.source });
         } else {
-          throw new Error(`Unknown source '${options.source}'. Available: ${Object.keys(SOURCES).join(', ')}, all`);
+          throw new Error(
+            `Unknown source '${options.source}'. Available: ${Object.keys(SOURCES).join(', ')}, all`,
+          );
         }
       }
 
       // 3. Fetch remote sources
-      // We fetch if there are remote sources defined.
-      // Note: Default remote sources are skipped above if --offline is set,
-      // but custom --url is always added to sourcesToFetch.
       if (sourcesToFetch.length > 0) {
-        // Apply global insecure flag
         if (options.insecure) {
           sourcesToFetch.forEach((s) => (s.insecure = true));
         }
@@ -205,15 +206,8 @@ npx worm-sign --fetch
             ? ora(`Fetching from ${sourcesToFetch.length} remote source(s)...`).start()
             : null;
         try {
-          // Use caching if enabled
-          if (options.cache) {
-            // TODO: Implement granular caching per source?
-            // For now, the existing cache logic was monolithic.
-            // We might skip complex caching refactor for now and just fetch.
-            // Or we can try to load cache.
-          }
-
-          const { packages: fetchedPackages, errors } = await fetchCompromisedPackages(sourcesToFetch);
+          const { packages: fetchedPackages, errors } =
+            await fetchCompromisedPackages(sourcesToFetch);
           allCompromised.push(...fetchedPackages);
           foundSources = true;
 
@@ -221,7 +215,7 @@ npx worm-sign --fetch
             if (errors.length > 0) {
               spinner.warn(
                 chalk.yellow(
-                  `Fetched ${fetchedPackages.length} packages, but some sources failed:\n${errors.map((e) => '  - ' + e).join('\n')}`,
+                  `Fetched ${fetchedPackages.length} packages, but some sources failed:\n${errors.map((e: string) => '  - ' + e).join('\n')}`,
                 ),
               );
             } else {
@@ -230,17 +224,17 @@ npx worm-sign --fetch
               );
             }
           } else if (errors.length > 0) {
-            errors.forEach((e) => console.warn(chalk.yellow(`Warning: ${e}`)));
+            errors.forEach((e: string) => console.warn(chalk.yellow(`Warning: ${e}`)));
           }
-        } catch (error: any) {
-          // This catch block might not be reached anymore unless fetchCompromisedPackages throws unexpected error
+        } catch (error: unknown) {
+          const msg = error instanceof Error ? error.message : String(error);
           if (spinner) {
-            spinner.fail(chalk.red(`Error: Unexpected failure during fetch: ${error.message}`));
+            spinner.fail(chalk.red(`Error: Unexpected failure during fetch: ${msg}`));
           }
         }
       }
 
-      // Fallback to legacy vuls.csv in root if ABSOLUTELY nothing found
+      // Fallback
       if (!foundSources && sourcesToFetch.length === 0) {
         const legacyPath = path.join(dataDir, 'vuls.csv');
         if (fs.existsSync(legacyPath)) {
@@ -254,7 +248,9 @@ npx worm-sign --fetch
       }
 
       if (!foundSources && allCompromised.length === 0) {
-        console.warn(chalk.yellow('Warning: No compromised packages loaded. Scan will likely pass.'));
+        console.warn(
+          chalk.yellow('Warning: No compromised packages loaded. Scan will likely pass.'),
+        );
       }
 
       const compromisedListSource = allCompromised;
@@ -267,34 +263,57 @@ npx worm-sign --fetch
         debug: options.debug,
       });
 
+      if (options.format === 'sarif') {
+        const sarifReport = generateSarif(matches, warnings);
+        console.log(JSON.stringify(sarifReport, null, 2));
+      } else {
+        if (matches.length > 0) {
+          console.log(chalk.red(`\n🚫 FOUND ${matches.length} COMPROMISED PACKAGES:`));
+          matches.forEach((m: ScanMatch) => {
+            console.log(
+              chalk.red(`  - ${m.name}@${m.version}`) + chalk.dim(` (found in ${m.section})`),
+            );
+          });
+        }
+      }
+
       if (matches.length > 0) {
         if (options.dryRun) {
-          console.log(chalk.yellow('\n[DRY RUN] Vulnerabilities found, but exiting with 0.'));
+          if (options.format === 'text') {
+            console.log(chalk.yellow('\n[DRY RUN] Vulnerabilities found, but exiting with 0.'));
+          }
           process.exit(0);
         }
         process.exit(1);
       } else {
+        if (warnings.length > 0 && options.format === 'text') {
+          console.log('');
+          warnings.forEach((w: string) => console.warn(chalk.yellow(`Warning: ${w}`)));
+        }
+        if (options.format === 'text') {
+          console.log(chalk.green('\nNo wormsign detected.'));
+        }
         process.exit(0);
       }
-    } catch (error: any) {
-      console.error(chalk.red(`Error: ${error.message}`));
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(chalk.red(`Error: ${msg}`));
 
-      // Actionable advice
-      if (error.message.includes('package.json not found')) {
+      if (msg.includes('package.json not found')) {
         console.log(chalk.dim('Hint: Are you in the root directory of your Node.js project?'));
-      } else if (error.message.includes('no lockfile was found')) {
+      } else if (msg.includes('no lockfile was found')) {
         console.log(
           chalk.dim(
             "Hint: Run your package manager's install command (e.g., `npm install`) to generate a lockfile.",
           ),
         );
-      } else if (error.message.includes('Unable to determine which package manager')) {
+      } else if (msg.includes('Unable to determine which package manager')) {
         console.log(
           chalk.dim(
             'Hint: Ensure you have a lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml) or set the "packageManager" field in package.json.',
           ),
         );
-      } else if (error.message.includes('API request failed')) {
+      } else if (msg.includes('API request failed')) {
         console.log(
           chalk.dim(
             'Hint: Check your internet connection or try using --source koi for an alternative data source.',

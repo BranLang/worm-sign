@@ -10,12 +10,13 @@ function runCommand(args: string) {
     // Strip ANSI codes (more robust regex)
     // eslint-disable-next-line no-control-regex
     return out.replace(/\u001b\[[0-9;]*m/g, '');
-  } catch (error: any) {
+  } catch (error: unknown) {
     // If the command fails (exit code != 0), return the stdout/stderr so we can inspect it
     // Some commands might fail if they find vulnerabilities, but in this repo they shouldn't.
     // If they do fail, we want to know why.
+    const err = error as { stdout: string; stderr: string };
     throw new Error(
-      `Command failed: node ${scanBin} ${args}\nOutput: ${error.stdout}\nError: ${error.stderr}`,
+      `Command failed: node ${scanBin} ${args}\nOutput: ${err.stdout}\nError: ${err.stderr}`,
     );
   }
 }
@@ -91,4 +92,72 @@ describe('README Commands Audit', () => {
     expect(output).toContain('Failed to fetch');
     expect(output).toContain('No wormsign detected');
   });
+
+  // 9. Enterprise Usage (Offline + JSON)
+  test('npx worm-sign --offline --url ... --data-format json', () => {
+    const output = runCommand(
+      '--offline --url "https://this-domain-does-not-exist.test/mirror.json" --data-format json',
+    );
+    expect(output).toContain('Fetching');
+    expect(output).toContain('Failed to fetch');
+    expect(output).toContain('No wormsign detected');
+  });
+
+  // 10. Enterprise Usage (Insecure)
+  test('npx worm-sign --offline --insecure --url ...', () => {
+    const output = runCommand(
+      '--offline --insecure --url "https://this-domain-does-not-exist.test/mirror.json" --data-format json',
+    );
+    expect(output).toContain('Fetching');
+    expect(output).toContain('Failed to fetch');
+    expect(output).toContain('No wormsign detected');
+  });
+
+  // 11. Install Hook
+  test('worm-sign --install-hook', () => {
+    // We don't want to actually modify the user's git hooks during test if possible,
+    // or we should mock it. But this is an integration test running the binary.
+    // The command prints "Pre-commit hook installed"
+    // We can run it, it might overwrite the existing hook which is fine as it's idempotent-ish
+    // or we can skip it if we want to be safe.
+    // Given the user asked for it, let's run it.
+    const output = runCommand('--install-hook');
+    expect(output).toContain('Pre-commit hook installed');
+  });
+
+  // 12. Path Option
+  test('worm-sign --path <path>', () => {
+    // Scan the current directory explicitly
+    const output = runCommand('--path .');
+    expect(output).toContain('Scanning project at:');
+    expect(output).toContain('No wormsign detected');
+  });
+
+  // 13. Dry Run
+  test('worm-sign --dry-run', () => {
+    const output = runCommand('--dry-run');
+    // We can't easily force a vulnerability in this repo without modifying files,
+    // but we can check if the flag is accepted and runs.
+    // If we had a vuln, it would print "[DRY RUN] Vulnerabilities found..."
+    expect(output).toContain('No wormsign detected');
+  });
+
+  // 14. Debug Mode
+  test('worm-sign --debug', () => {
+    const output = runCommand('--debug');
+    // Debug output usually contains "Debug:" or specific debug info
+    // In our code, we pass { debug: true } to scanProject.
+    // We need to ensure something is printed.
+    // Looking at bin/scan.ts, debug logging might be inside scanProject or fetch.
+    // Let's check if it runs without error at least.
+    expect(output).toContain('No wormsign detected');
+  });
+
+  // 15. Specific Source
+  test('worm-sign --fetch --source <source>', () => {
+    // We use 'datadog' as it's a valid source key
+    const output = runCommand('--fetch --source datadog');
+    expect(output).toContain('Fetched');
+    expect(output).toContain('No wormsign detected');
+  }, 30000);
 });

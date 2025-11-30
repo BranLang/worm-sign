@@ -3,7 +3,7 @@ import * as crypto from 'crypto';
 import * as path from 'path';
 import * as https from 'https';
 import { IncomingMessage } from 'http';
-import { parse } from 'csv-parse/sync';
+
 import pnpm from './package-managers/pnpm';
 import yarn from './package-managers/yarn';
 import npm from './package-managers/npm';
@@ -13,6 +13,7 @@ import { validateUrl } from './utils/validators';
 const packageManagers: PackageManagerHandler[] = [pnpm, yarn, npm];
 
 import { loadCsv, parseCsv } from './utils/csv';
+export { loadCsv, parseCsv };
 
 export function loadJson(filePath: string): CompromisedPackage[] {
   const raw = fs.readFileSync(filePath, 'utf8');
@@ -29,8 +30,10 @@ export function loadJson(filePath: string): CompromisedPackage[] {
       `Warning: JSON at ${filePath} does not contain a "packages" array or is not an array.`,
     );
     return [];
-  } catch (e: any) {
-    console.warn(`Warning: Failed to parse JSON ${filePath}: ${e.message}`);
+    return [];
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn(`Warning: Failed to parse JSON ${filePath}: ${msg}`);
     return [];
   }
 }
@@ -125,8 +128,9 @@ export function fetchFromApi(sourceConfig: {
             } else if (type === 'csv') {
               resolve(parseCsv(data));
             }
-          } catch (e: any) {
-            reject(new Error(`Failed to parse API response: ${e.message}`));
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            reject(new Error(`Failed to parse API response: ${msg}`));
           }
         });
       });
@@ -153,8 +157,9 @@ export async function fetchCompromisedPackages(
     try {
       const pkgs = await fetchFromApi(config);
       allPackages.push(...pkgs);
-    } catch (error: any) {
-      errors.push(`Failed to fetch from ${name}: ${error.message}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      errors.push(`Failed to fetch from ${name}: ${msg}`);
     }
   }
 
@@ -175,13 +180,13 @@ export async function fetchCompromisedPackages(
   return { packages: Array.from(uniqueMap.values()), errors };
 }
 
-function collectPackages(pkgJson: any): Map<string, { section: string; version: string }> {
+function collectPackages(pkgJson: PackageJson): Map<string, { section: string; version: string }> {
   const sections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
 
   const results = new Map<string, { section: string; version: string }>();
 
   for (const section of sections) {
-    const entries = pkgJson[section];
+    const entries = (pkgJson as Record<string, unknown>)[section];
     if (!entries) continue;
     for (const [name, version] of Object.entries(entries) as [string, string][]) {
       results.set(name, { section, version });
@@ -208,10 +213,9 @@ function buildCompromisedMap(entries: CompromisedPackage[]): Map<string, Comprom
     } else {
       info.versions.add(ver);
     }
-    // @ts-ignore
-    if (entries.find((e) => e.name === name && e.version === version)?.integrity) {
-      // @ts-ignore
-      info.hashes.add(entries.find((e) => e.name === name && e.version === version)?.integrity);
+    const entry = entries.find((e) => e.name === name && e.version === version);
+    if (entry?.integrity) {
+      info.hashes.add(entry.integrity);
     }
     map.set(name, info);
   }
@@ -255,7 +259,7 @@ function findLockForHandler(projectRoot: string, handler: PackageManagerHandler)
   return null;
 }
 
-function detectPackageManager(projectRoot: string, packageJson: any) {
+function detectPackageManager(projectRoot: string, packageJson: PackageJson) {
   const warnings: string[] = [];
   const packageManagerField = packageJson?.packageManager;
   let preferred: PackageManagerHandler | null = null;
@@ -271,7 +275,9 @@ function detectPackageManager(projectRoot: string, packageJson: any) {
 
   const available = packageManagers
     .map((handler) => ({ handler, lockPath: findLockForHandler(projectRoot, handler) }))
-    .filter((entry) => !!entry.lockPath);
+    .filter(
+      (entry): entry is { handler: PackageManagerHandler; lockPath: string } => !!entry.lockPath,
+    );
 
   if (preferred) {
     const preferredLockPath = findLockForHandler(projectRoot, preferred);
@@ -284,7 +290,6 @@ function detectPackageManager(projectRoot: string, packageJson: any) {
       warnings.push(
         `package.json declares ${preferred.label ?? preferred.id}, but its lockfile is missing; falling back to ${fallback.handler.label ?? fallback.handler.id}.`,
       );
-      // @ts-ignore
       return { handler: fallback.handler, lockPath: fallback.lockPath, warnings };
     }
 
@@ -295,7 +300,6 @@ function detectPackageManager(projectRoot: string, packageJson: any) {
   }
 
   if (available.length === 1) {
-    // @ts-ignore
     return { handler: available[0].handler, lockPath: available[0].lockPath, warnings };
   }
 
@@ -304,14 +308,23 @@ function detectPackageManager(projectRoot: string, packageJson: any) {
     warnings.push(
       `Multiple lockfiles detected (${names}); defaulting to ${available[0].handler.label ?? available[0].handler.id}.`,
     );
-    // @ts-ignore
     return { handler: available[0].handler, lockPath: available[0].lockPath, warnings };
   }
 
   return { handler: null, lockPath: null, warnings };
 }
 
-export function analyzeScripts(pkgJson: any): string[] {
+interface PackageJson {
+  scripts?: Record<string, string>;
+  packageManager?: string;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
+  [key: string]: unknown;
+}
+
+export function analyzeScripts(pkgJson: PackageJson): string[] {
   const warnings: string[] = [];
   const scripts = pkgJson.scripts || {};
   const SUSPICIOUS_PATTERNS = [
@@ -326,6 +339,19 @@ export function analyzeScripts(pkgJson: any): string[] {
     { regex: /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/, label: 'IP address detected' },
     { regex: /bun\.sh/, label: 'Suspicious domain (bun.sh) - associated with Shai Hulud' },
     { regex: /node\s+setup_bun\.js/, label: 'Shai Hulud malware script (node setup_bun.js)' },
+    {
+      regex: /shred\s+-uvz\s+-n\s+1/,
+      label: 'Destructive command (shred -uvz -n 1) - Shai Hulud Wiper',
+    },
+    {
+      regex: /del\s+\/F\s+\/Q\s+\/S\s+"%USERPROFILE%\*"/,
+      label: 'Destructive command (Windows Profile Wiper) - Shai Hulud',
+    },
+    {
+      regex: /irm\s+bun\.sh\/install\.ps1\|iex/,
+      label: 'PowerShell Bun Install (Shai Hulud Dropper)',
+    },
+    { regex: /Sha1-Hulud:\s+The\s+Second\s+Coming/, label: 'Shai Hulud C2 Signature' },
   ];
 
   for (const [name, script] of Object.entries(scripts) as [string, string][]) {
@@ -336,6 +362,23 @@ export function analyzeScripts(pkgJson: any): string[] {
     }
   }
   return warnings;
+}
+
+function calculateEntropy(buffer: Buffer): number {
+  const frequencies = new Array(256).fill(0);
+  for (const byte of buffer) {
+    frequencies[byte]++;
+  }
+
+  let entropy = 0;
+  const len = buffer.length;
+  for (const count of frequencies) {
+    if (count > 0) {
+      const p = count / len;
+      entropy -= p * Math.log2(p);
+    }
+  }
+  return entropy;
 }
 
 /**
@@ -409,8 +452,25 @@ export async function scanProject(
       try {
         const fileBuffer = fs.readFileSync(filePath);
         const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+        // Entropy Check for large files (like bun_environment.js > 10MB)
+        const stats = fs.statSync(filePath);
+        let highEntropy = false;
+        if (stats.size > 5 * 1024 * 1024) {
+          // Check files > 5MB
+          const entropy = calculateEntropy(fileBuffer);
+          if (entropy > 7.5) {
+            // High entropy threshold (compressed/encrypted)
+            highEntropy = true;
+          }
+        }
+
         if (KNOWN_MALWARE_HASHES.has(hash)) {
           allWarnings.push(`CONFIRMED MALWARE file detected: '${file}' (Hash match: ${hash})`);
+        } else if (highEntropy) {
+          allWarnings.push(
+            `HIGH RISK file detected: '${file}' (High Entropy: ${highEntropy}, Size: ${stats.size} bytes)`,
+          );
         } else {
           allWarnings.push(`Suspicious file detected: '${file}' (associated with Shai Hulud)`);
         }

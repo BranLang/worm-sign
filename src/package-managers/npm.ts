@@ -121,8 +121,9 @@ function loadLockPackages(lockPath: string): LockPackageResult {
       warnings,
       success: true,
     };
-  } catch (err: any) {
-    warnings.push(`Unable to parse ${path.basename(lockPath)}: ${err.message}`);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    warnings.push(`Unable to parse ${path.basename(lockPath)}: ${msg}`);
     return { packages, warnings, success: false };
   }
 }

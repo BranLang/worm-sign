@@ -12,8 +12,19 @@
 - **API Integration**: Fetches the latest banned list from a remote API (customizable).
 - **Smart Caching**: Caches API responses locally for 1 hour to improve performance.
 - **Heuristic Analysis**: Scans `package.json` scripts for suspicious patterns (e.g., `curl | bash`, `rm -rf`, reverse shells, obfuscated code).
+- **Entropy Analysis**: Detects high-entropy files (potential obfuscated malware payloads) > 5MB.
+- **Behavioral Detection**: Identifies destructive commands (`shred`, `del`) and known C2 signatures.
 - **SARIF Output**: Generates SARIF reports for integration with GitHub Security.
 - **CI/CD Ready**: Easily integrates into GitHub Actions or other CI pipelines.
+
+## Shai-Hulud 2.0 Detection
+
+Worm Sign includes advanced detection logic specifically for the **Shai-Hulud 2.0** campaign:
+
+- **File Entropy**: Analyzes large files (>5MB) for high entropy, a common indicator of packed/obfuscated malware payloads (e.g., `bun_environment.js`).
+- **Destructive Commands**: Flags scripts containing system-wiping commands like `shred -uvz -n 1` (Linux/macOS) and `del /F /Q /S "%USERPROFILE%*"` (Windows).
+- **Installation Vectors**: Detects specific installation patterns used by the malware, such as `irm bun.sh/install.ps1|iex` (PowerShell Bun install).
+- **C2 Signatures**: Scans for known Command & Control signatures like `"Sha1-Hulud: The Second Coming"`.
 
 ## Installation
 
@@ -168,3 +179,47 @@ The bundled data sources aggregate findings from various security research teams
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Command Line Options Reference
+
+| Option                   | Description                                        | Default |
+| ------------------------ | -------------------------------------------------- | ------- |
+| `-f, --fetch`            | Fetch the latest compromised packages from the API | `false` |
+| `-u, --url <url>`        | Custom API URL to fetch compromised packages from  | -       |
+| `--data-format <format>` | Data format for custom URL (`json`, `csv`)         | `json`  |
+| `-p, --path <path>`      | Path to the project to scan                        | `.`     |
+| `--format <format>`      | Output format (`text`, `sarif`)                    | `text`  |
+| `--no-cache`             | Disable caching of API responses                   | `false` |
+| `--install-hook`         | Install a pre-commit hook to run worm-sign         | `false` |
+| `--dry-run`              | Run scan but always exit with 0 (useful for CI)    | `false` |
+| `--offline`              | Disable network requests (implies `--no-fetch`)    | `false` |
+| `--insecure`             | Disable SSL certificate verification               | `false` |
+| `--debug`                | Enable debug logging                               | `false` |
+
+### Advanced Examples
+
+**Scan a specific directory:**
+
+```bash
+worm-sign --path ./projects/my-app
+```
+
+**Run in CI (Dry Run):**
+Use `--dry-run` to see what would be found without failing the build (exit code 0).
+
+```bash
+worm-sign --dry-run
+```
+
+**Debug Mode:**
+Enable verbose logging to troubleshoot issues.
+
+```bash
+worm-sign --debug
+```
+
+**Fetch from specific source:**
+
+```bash
+worm-sign --fetch --source datadog
+```

@@ -1,13 +1,20 @@
 import Table from 'cli-table3';
 import { ScanMatch } from '../types';
 
+interface ReporterContext {
+  chalk?: unknown;
+  boxen?: unknown;
+  [key: string]: unknown;
+}
+
 export function report(
   matches: ScanMatch[],
   warnings: string[],
   projectRoot: string,
-  context: any = {},
+  context: ReporterContext = {},
 ) {
-  const { chalk, boxen } = context;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { chalk, boxen } = context as any;
 
   // Fallback mocks if not provided
   const c = chalk || {
