@@ -4,13 +4,13 @@ import * as path from 'path';
 import * as https from 'https';
 import { IncomingMessage } from 'http';
 
-import pnpm from './package-managers/pnpm';
-import yarn from './package-managers/yarn';
-import npm from './package-managers/npm';
-import { CompromisedPackage, PackageManagerHandler, ScanMatch } from './types';
+import Arborist from '@npmcli/arborist';
+import { analyzeScripts } from './analysis';
+export { analyzeScripts };
+import { decryptAll } from './utils/vial';
+import { ENCRYPTED_FILENAMES } from './generated/signatures';
+import { CompromisedPackage, ScanMatch } from './types';
 import { validateUrl } from './utils/validators';
-
-const packageManagers: PackageManagerHandler[] = [pnpm, yarn, npm];
 
 import { loadCsv, parseCsv } from './utils/csv';
 export { loadCsv, parseCsv };
@@ -180,22 +180,6 @@ export async function fetchCompromisedPackages(
   return { packages: Array.from(uniqueMap.values()), errors };
 }
 
-function collectPackages(pkgJson: PackageJson): Map<string, { section: string; version: string }> {
-  const sections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
-
-  const results = new Map<string, { section: string; version: string }>();
-
-  for (const section of sections) {
-    const entries = (pkgJson as Record<string, unknown>)[section];
-    if (!entries) continue;
-    for (const [name, version] of Object.entries(entries) as [string, string][]) {
-      results.set(name, { section, version });
-    }
-  }
-
-  return results;
-}
-
 interface CompromisedInfo {
   versions: Set<string>;
   wildcard: boolean;
@@ -225,15 +209,12 @@ function buildCompromisedMap(entries: CompromisedPackage[]): Map<string, Comprom
 function shouldFlag(
   compromisedInfo: CompromisedInfo | undefined,
   version: string,
-  integrity?: string,
+  integrity?: string | null,
 ): boolean {
   if (!compromisedInfo) return false;
   if (compromisedInfo.wildcard) return true;
   if (compromisedInfo.versions.has(version)) return true;
   if (integrity && compromisedInfo.hashes.size > 0) {
-    // Check if any banned hash matches the package integrity
-    // Integrity strings are usually "algo-hash", e.g. "sha512-..."
-    // We should check if the banned hash is contained in the integrity string
     for (const hash of compromisedInfo.hashes) {
       if (integrity.includes(hash)) return true;
     }
@@ -241,148 +222,8 @@ function shouldFlag(
   return false;
 }
 
-function findLockForHandler(projectRoot: string, handler: PackageManagerHandler): string | null {
-  if (typeof handler.findLockFile === 'function') {
-    const resolved = handler.findLockFile(projectRoot);
-    if (resolved) return resolved;
-  }
-
-  if (Array.isArray(handler.lockFiles)) {
-    for (const fileName of handler.lockFiles) {
-      const candidate = path.join(projectRoot, fileName);
-      if (fs.existsSync(candidate)) {
-        return candidate;
-      }
-    }
-  }
-
-  return null;
-}
-
-function detectPackageManager(projectRoot: string, packageJson: PackageJson) {
-  const warnings: string[] = [];
-  const packageManagerField = packageJson?.packageManager;
-  let preferred: PackageManagerHandler | null = null;
-
-  if (packageManagerField) {
-    preferred =
-      packageManagers.find(
-        (handler) =>
-          typeof handler.detectFromPackageManagerField === 'function' &&
-          handler.detectFromPackageManagerField(packageManagerField),
-      ) || null;
-  }
-
-  const available = packageManagers
-    .map((handler) => ({ handler, lockPath: findLockForHandler(projectRoot, handler) }))
-    .filter(
-      (entry): entry is { handler: PackageManagerHandler; lockPath: string } => !!entry.lockPath,
-    );
-
-  if (preferred) {
-    const preferredLockPath = findLockForHandler(projectRoot, preferred);
-    if (preferredLockPath) {
-      return { handler: preferred, lockPath: preferredLockPath, warnings };
-    }
-
-    if (available.length > 0) {
-      const fallback = available[0];
-      warnings.push(
-        `package.json declares ${preferred.label ?? preferred.id}, but its lockfile is missing; falling back to ${fallback.handler.label ?? fallback.handler.id}.`,
-      );
-      return { handler: fallback.handler, lockPath: fallback.lockPath, warnings };
-    }
-
-    warnings.push(
-      `package.json declares ${preferred.label ?? preferred.id}, but no matching lockfile was found.`,
-    );
-    return { handler: preferred, lockPath: null, warnings };
-  }
-
-  if (available.length === 1) {
-    return { handler: available[0].handler, lockPath: available[0].lockPath, warnings };
-  }
-
-  if (available.length > 1) {
-    const names = available.map((entry) => entry.handler.label ?? entry.handler.id).join(', ');
-    warnings.push(
-      `Multiple lockfiles detected (${names}); defaulting to ${available[0].handler.label ?? available[0].handler.id}.`,
-    );
-    return { handler: available[0].handler, lockPath: available[0].lockPath, warnings };
-  }
-
-  return { handler: null, lockPath: null, warnings };
-}
-
-interface PackageJson {
-  scripts?: Record<string, string>;
-  packageManager?: string;
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-  optionalDependencies?: Record<string, string>;
-  [key: string]: unknown;
-}
-
-export function analyzeScripts(pkgJson: PackageJson): string[] {
-  const warnings: string[] = [];
-  const scripts = pkgJson.scripts || {};
-  const SUSPICIOUS_PATTERNS = [
-    { regex: /(curl|wget)\s+/, label: 'Network request (curl/wget)' },
-    { regex: /\|\s*bash/, label: 'Pipe to bash' },
-    { regex: /[A-Za-z0-9+/]{60,}={0,2}/, label: 'Potential Base64 encoded string' },
-    { regex: /\\x[0-9a-fA-F]{2}/, label: 'Hex escape sequence (obfuscation)' },
-    { regex: /eval\s*\(/, label: 'Use of eval()' },
-    { regex: /rm\s+(-rf|-fr)\s+[\s\S]*/, label: 'Destructive command (rm -rf)' },
-    { regex: /nc\s+.*-e\s+/, label: 'Netcat reverse shell' },
-    { regex: /(python|perl|ruby|node|sh|bash)\s+-[ce]\s+/, label: 'Inline code execution' },
-    { regex: /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/, label: 'IP address detected' },
-    { regex: /bun\.sh/, label: 'Suspicious domain (bun.sh) - associated with Shai Hulud' },
-    { regex: /node\s+setup_bun\.js/, label: 'Shai Hulud malware script (node setup_bun.js)' },
-    {
-      regex: /shred\s+-uvz\s+-n\s+1/,
-      label: 'Destructive command (shred -uvz -n 1) - Shai Hulud Wiper',
-    },
-    {
-      regex: /del\s+\/F\s+\/Q\s+\/S\s+"%USERPROFILE%\*"/,
-      label: 'Destructive command (Windows Profile Wiper) - Shai Hulud',
-    },
-    {
-      regex: /irm\s+bun\.sh\/install\.ps1\|iex/,
-      label: 'PowerShell Bun Install (Shai Hulud Dropper)',
-    },
-    { regex: /Sha1-Hulud:\s+The\s+Second\s+Coming/, label: 'Shai Hulud C2 Signature' },
-  ];
-
-  for (const [name, script] of Object.entries(scripts) as [string, string][]) {
-    for (const pattern of SUSPICIOUS_PATTERNS) {
-      if (pattern.regex.test(script)) {
-        warnings.push(`Suspicious script detected in '${name}': ${pattern.label}`);
-      }
-    }
-  }
-  return warnings;
-}
-
-function calculateEntropy(buffer: Buffer): number {
-  const frequencies = new Array(256).fill(0);
-  for (const byte of buffer) {
-    frequencies[byte]++;
-  }
-
-  let entropy = 0;
-  const len = buffer.length;
-  for (const count of frequencies) {
-    if (count > 0) {
-      const p = count / len;
-      entropy -= p * Math.log2(p);
-    }
-  }
-  return entropy;
-}
-
 /**
- * Scans the project for compromised packages.
+ * Scans the project for compromised packages using @npmcli/arborist.
  * @param {string} projectRoot - The root directory of the project.
  * @param {string|Array} compromisedListSource - Path to the CSV file OR an array of compromised package objects.
  * @param {Object} [options] - Optional settings.
@@ -398,12 +239,9 @@ export async function scanProject(
     if (options?.debug) console.log(`[DEBUG] ${msg}`);
   };
 
-  // Input Validation: Path Traversal Protection
   const resolvedRoot = path.resolve(projectRoot);
   debug(`Scanning project at: ${resolvedRoot}`);
-  // Ensure resolved path is still within expected bounds if necessary,
-  // but for a CLI tool scanning a user-provided path, resolve is usually enough to handle relative paths safely.
-  // We can check if it exists here.
+
   if (!fs.existsSync(resolvedRoot)) {
     throw new Error(`Project root does not exist: ${resolvedRoot}`);
   }
@@ -430,20 +268,17 @@ export async function scanProject(
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   debug('Loaded package.json');
 
-  // Heuristic Analysis
+  // 1. Analyze Root Scripts
   const scriptWarnings = analyzeScripts(packageJson);
   allWarnings.push(...scriptWarnings);
 
-  // Check for known malware files
-  const MALWARE_FILES = ['setup_bun.js', 'bun_environment.js'];
+  // 2. Check for known malware files in root (using decrypted filenames)
+  const MALWARE_FILES = decryptAll(ENCRYPTED_FILENAMES);
   const KNOWN_MALWARE_HASHES = new Set([
     'a3894003ad1d293ba96d77881ccd2071446dc3f65f434669b49b3da92421901a', // setup_bun.js
     '62ee164b9b306250c1172583f138c9614139264f889fa99614903c12755468d0', // bun_environment.js
     'cbb9bc5a8496243e02f3cc080efbe3e4a1430ba0671f2e43a202bf45b05479cd', // bun_environment.js
     'f099c5d9ec417d4445a0328ac0ada9cde79fc37410914103ae9c609cbc0ee068', // bun_environment.js
-    'f1df4896244500671eb4aa63ebb48ea11cee196fafaa0e9874e17b24ac053c02', // OSINT
-    '9d59fd0bcc14b671079824c704575f201b74276238dc07a9c12a93a84195648a', // OSINT
-    'e0250076c1d2ac38777ea8f542431daf61fcbaab0ca9c196614b28065ef5b918', // OSINT
   ]);
 
   for (const file of MALWARE_FILES) {
@@ -453,24 +288,8 @@ export async function scanProject(
         const fileBuffer = fs.readFileSync(filePath);
         const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
 
-        // Entropy Check for large files (like bun_environment.js > 10MB)
-        const stats = fs.statSync(filePath);
-        let highEntropy = false;
-        if (stats.size > 5 * 1024 * 1024) {
-          // Check files > 5MB
-          const entropy = calculateEntropy(fileBuffer);
-          if (entropy > 7.5) {
-            // High entropy threshold (compressed/encrypted)
-            highEntropy = true;
-          }
-        }
-
         if (KNOWN_MALWARE_HASHES.has(hash)) {
           allWarnings.push(`CONFIRMED MALWARE file detected: '${file}' (Hash match: ${hash})`);
-        } else if (highEntropy) {
-          allWarnings.push(
-            `HIGH RISK file detected: '${file}' (High Entropy: ${highEntropy}, Size: ${stats.size} bytes)`,
-          );
         } else {
           allWarnings.push(`Suspicious file detected: '${file}' (associated with Shai Hulud)`);
         }
@@ -482,61 +301,33 @@ export async function scanProject(
     }
   }
 
+  // 3. Scan Dependencies using Arborist
   const compromisedMap = buildCompromisedMap(compromisedEntries);
-  const declaredPackages = collectPackages(packageJson);
-  debug(`Found ${declaredPackages.size} declared dependencies.`);
-
-  const detection = detectPackageManager(projectRoot, packageJson);
-  if (detection.warnings) {
-    allWarnings.push(...detection.warnings);
-  }
-
-  if (!detection.handler) {
-    throw new Error(
-      'Unable to determine which package manager to inspect. Add a lockfile or set the packageManager field in package.json.',
-    );
-  }
-
-  if (!detection.lockPath) {
-    throw new Error(
-      `Detected ${detection.handler.label ?? detection.handler.id}, but no lockfile was found. Please generate a lockfile and retry.`,
-    );
-  }
-
-  const {
-    packages: lockPackages = new Map(),
-    packageIntegrity: lockIntegrity = new Map(),
-    warnings: lockWarnings = [],
-    success,
-  } = detection.handler.loadLockPackages(detection.lockPath);
-  debug(`Loaded ${lockPackages.size} packages from lockfile: ${detection.lockPath}`);
-
-  if (lockWarnings) {
-    allWarnings.push(...lockWarnings);
-  }
-
-  if (!success) {
-    throw new Error('Unable to analyse the dependency lockfile.');
-  }
-
   const matches: ScanMatch[] = [];
-  const seen = new Set();
 
-  for (const [name, info] of compromisedMap.entries()) {
-    const versions = lockPackages.get(name);
-    if (!versions || versions.size === 0) continue;
+  try {
+    const arb = new Arborist({ path: resolvedRoot });
+    // loadVirtual() reads the lockfile and builds the tree without checking node_modules
+    const tree = await arb.loadVirtual();
+    debug(`Loaded dependency tree with ${tree.inventory.size} nodes.`);
 
-    for (const version of versions) {
-      const integrity = lockIntegrity.get(name)?.get(version);
-      if (!shouldFlag(info, version, integrity)) continue;
-      const key = `${name}@${version}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
+    for (const node of tree.inventory.values()) {
+      const { name, version, integrity } = node;
+      const info = compromisedMap.get(name);
 
-      const declared = declaredPackages.get(name);
-      const section = declared ? declared.section : 'transitive';
-      matches.push({ name, version, section });
+      if (shouldFlag(info, version, integrity)) {
+        // Determine section (dev/prod) - Arborist nodes have 'dev' property
+        const section = node.dev ? 'devDependencies' : 'dependencies';
+        matches.push({ name, version, section });
+      }
     }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Fallback or error reporting
+    if (msg.includes('ENOENT') && msg.includes('lock')) {
+      throw new Error('No lockfile found. Please run npm install/yarn install to generate one.');
+    }
+    throw new Error(`Failed to load dependency tree: ${msg}`);
   }
 
   return { matches, warnings: allWarnings };

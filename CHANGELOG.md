@@ -1,9 +1,16 @@
 # Changelog
 
-## [2.3.1] - 2025-11-30
+## [3.0.0] - 2025-11-30
+
+### Added
+
+- **Safe Static Analysis**: Migrated to `@npmcli/arborist` to scan lockfiles without executing scripts, neutralizing the "Dead Man's Switch".
+- **Signature Obfuscation**: Implemented the "Vial" protocol to XOR-encrypt internal signatures, preventing the scanner from being flagged by AV/EDR.
+- **Trusted Publishing**: Configured OIDC for npm provenance to establish a verifiable chain of custody.
 
 ### Changed
 
+- **Breaking Change**: Removed support for legacy lockfile parsing in favor of Arborist.
 - **Metadata**: Updated `package.json` keywords to improve discovery (added `supply-chain`, `devsecops`, `audit`, etc.).
 
 ## [2.3.0] - 2025-11-30

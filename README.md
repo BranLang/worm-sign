@@ -6,6 +6,8 @@
 
 ## Features
 
+- **Safe Static Analysis**: Uses `@npmcli/arborist` to inspect the dependency tree without executing any lifecycle scripts, neutralizing the malware's "Dead Man's Switch".
+- **Signature Obfuscation**: Implements the "Vial" protocol to XOR-encrypt internal signatures, preventing the scanner itself from being flagged by AV/EDR systems.
 - **Detects Shai Hulud**: Identifies packages known to be compromised by the Shai Hulud malware.
 - **Hash-Based Detection**: Detects compromised packages by their integrity hash (SHA-1/SHA-512), catching variants even if they are renamed or version-spoofed.
 - **Lockfile Support**: Scans `package-lock.json`, `yarn.lock`, and `pnpm-lock.yaml`.
@@ -227,4 +229,3 @@ The bundled data sources aggregate findings from various security research teams
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
