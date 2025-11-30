@@ -1,4 +1,4 @@
-import { loadCsv, fetchFromApi, fetchBannedPackages } from '../src/index';
+import { loadCsv, fetchFromApi, fetchCompromisedPackages } from '../src/index';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -56,9 +56,9 @@ describe('Unit Tests', () => {
   describe('fetchFromApi', () => {
     test('should fetch and parse JSON', async () => {
       const mockResponse = new PassThrough();
-      // @ts-ignore
+      // @ts-expect-error: mocking statusCode
       mockResponse.statusCode = 200;
-      // @ts-ignore
+      // @ts-expect-error: mocking headers
       mockResponse.headers = {};
 
       (https.get as jest.Mock).mockImplementation((url, options, callback) => {
@@ -77,9 +77,9 @@ describe('Unit Tests', () => {
 
     test('should fetch and parse CSV', async () => {
       const mockResponse = new PassThrough();
-      // @ts-ignore
+      // @ts-expect-error: mocking statusCode
       mockResponse.statusCode = 200;
-      // @ts-ignore
+      // @ts-expect-error: mocking headers
       mockResponse.headers = {};
 
       (https.get as jest.Mock).mockImplementation((url, options, callback) => {
@@ -97,7 +97,7 @@ describe('Unit Tests', () => {
     });
   });
 
-  describe('fetchBannedPackages', () => {
+  describe('fetchCompromisedPackages', () => {
     test('should fetch from all sources and deduplicate', async () => {
       const mockResponses: Record<string, string> = {
         koi: 'name,version\npkg-b,2.0.0',
@@ -106,9 +106,9 @@ describe('Unit Tests', () => {
 
       (https.get as jest.Mock).mockImplementation((url, options, callback) => {
         const stream = new PassThrough();
-        // @ts-ignore
+        // @ts-expect-error: mocking statusCode
         stream.statusCode = 200;
-        // @ts-ignore
+        // @ts-expect-error: mocking headers
         stream.headers = {};
 
         callback(stream);
@@ -139,7 +139,7 @@ describe('Unit Tests', () => {
         },
       ];
 
-      const { packages: result } = await fetchBannedPackages(sources);
+      const { packages: result } = await fetchCompromisedPackages(sources);
 
       // Expected: pkg-b@2.0.0 (koi), pkg-a@1.0.0 (datadog), pkg-c@3.0.0 (datadog)
       expect(result).toHaveLength(3);
@@ -157,13 +157,13 @@ describe('Unit Tests', () => {
         const stream = new PassThrough();
 
         if (url.includes('google')) {
-          // @ts-ignore
+          // @ts-expect-error: mocking statusCode
           stream.statusCode = 500; // Fail Koi
         } else {
-          // @ts-ignore
+          // @ts-expect-error: mocking statusCode
           stream.statusCode = 200;
         }
-        // @ts-ignore
+        // @ts-expect-error: mocking headers
         stream.headers = {};
 
         callback(stream);
@@ -193,7 +193,7 @@ describe('Unit Tests', () => {
         },
       ];
 
-      const { packages: result } = await fetchBannedPackages(sources);
+      const { packages: result } = await fetchCompromisedPackages(sources);
 
       // Should still have pkg-c
       expect(result).toHaveLength(1);

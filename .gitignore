@@ -35,3 +35,12 @@ verify_install*
 
 # Logs
 lint_output.txt
+
+# Archived Sources
+sources/archive/
+
+# Verification Directories
+verify_installs/
+
+# Test Output
+test_output/

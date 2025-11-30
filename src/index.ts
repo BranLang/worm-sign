@@ -3,95 +3,37 @@ import * as crypto from 'crypto';
 import * as path from 'path';
 import * as https from 'https';
 import { IncomingMessage } from 'http';
-import { parse } from 'csv-parse/sync';
+
 import pnpm from './package-managers/pnpm';
 import yarn from './package-managers/yarn';
 import npm from './package-managers/npm';
-import { BannedPackage, PackageManagerHandler, ScanMatch } from './types';
+import { CompromisedPackage, PackageManagerHandler, ScanMatch } from './types';
 import { validateUrl } from './utils/validators';
 
 const packageManagers: PackageManagerHandler[] = [pnpm, yarn, npm];
 
-export function loadCsv(filePath: string): BannedPackage[] {
-  const raw = fs.readFileSync(filePath, 'utf8');
-  return parseCsv(raw);
-}
+import { loadCsv, parseCsv } from './utils/csv';
+export { loadCsv, parseCsv };
 
-export function loadJson(filePath: string): BannedPackage[] {
+export function loadJson(filePath: string): CompromisedPackage[] {
   const raw = fs.readFileSync(filePath, 'utf8');
   try {
     const json = JSON.parse(raw);
     if (Array.isArray(json)) {
       // Handle array of packages directly
-      return json as BannedPackage[];
+      return json as CompromisedPackage[];
     }
     if (json.packages && Array.isArray(json.packages)) {
-      return json.packages as BannedPackage[];
+      return json.packages as CompromisedPackage[];
     }
     console.warn(
       `Warning: JSON at ${filePath} does not contain a "packages" array or is not an array.`,
     );
     return [];
-  } catch (e: any) {
-    console.warn(`Warning: Failed to parse JSON ${filePath}: ${e.message}`);
     return [];
-  }
-}
-
-function parseCsv(raw: string): BannedPackage[] {
-  try {
-    parse(raw, {
-      columns: ['name', 'version', 'reason'],
-      skip_empty_lines: true,
-      relax_column_count: true,
-      trim: true,
-      from_line: 2, // Skip header assuming standard format, or we can use columns: true if header is reliable
-    });
-    // If columns option is used, records are objects.
-    // However, the input CSV might vary.
-    // The original code handled "package name,package version" header.
-    // Let's use a more robust approach:
-    // If we use columns: true, it uses the first line as header.
-    // But the header might be "package name" or "name".
-
-    // Let's stick to the original logic's intent but use csv-parse for tokenization.
-    // Actually, let's use columns: true and map keys.
-
-    const parsed = parse(raw, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-      relax_column_count: true,
-      comment: '#',
-    });
-
-    return parsed
-      .map((record: any) => {
-        // Try to find name and version fields
-        const name =
-          record['package name'] ||
-          record['name'] ||
-          record['Package Name'] ||
-          record['package_name'] ||
-          Object.values(record)[0];
-        const version =
-          record['package version'] ||
-          record['version'] ||
-          record['Package Version'] ||
-          record['package_version'] ||
-          Object.values(record)[1] ||
-          '';
-        const reason = record['MSC ID'] || record['reason'] || '';
-        const integrity = record['integrity'] || record['hash'] || record['shasum'] || undefined;
-
-        return { name, version, reason, integrity };
-      })
-      .filter((p: any) => !!p.name) as BannedPackage[];
-  } catch (e) {
-    // Fallback or rethrow?
-    // If strict parsing fails, maybe try simple split?
-    // But we want to fix the vulnerability, so we should rely on the parser.
-    console.warn('CSV parse warning:', e);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn(`Warning: Failed to parse JSON ${filePath}: ${msg}`);
     return [];
   }
 }
@@ -103,17 +45,35 @@ export interface SourceConfig {
   insecure?: boolean;
 }
 
+export const SOURCES: Record<string, SourceConfig> = {
+  datadog: {
+    url: 'https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/consolidated_iocs.csv',
+    type: 'csv',
+  },
+  koi: {
+    url: 'https://docs.google.com/spreadsheets/d/16aw6s7mWoGU7vxBciTEZSaR5HaohlBTfVirvI-PypJc/export?format=csv&gid=1289659284',
+    type: 'csv',
+  },
+  // TODO: Update IBM URL as it is currently returning 404
+  /*
+  ibm: {
+    url: 'https://raw.githubusercontent.com/IBM/security-intelligence/master/threat-intel/shai-hulud.csv',
+    type: 'csv',
+  },
+  */
+};
+
 export function fetchFromApi(sourceConfig: {
   url: string;
   type: string;
   insecure?: boolean;
-}): Promise<BannedPackage[]> {
+}): Promise<CompromisedPackage[]> {
   const { url, type, insecure } = sourceConfig;
   if (!url || !type) {
     return Promise.reject(new Error('Invalid source configuration: missing url or type'));
   }
 
-  const fetchUrl = async (targetUrl: string, attempt = 1): Promise<BannedPackage[]> => {
+  const fetchUrl = async (targetUrl: string, attempt = 1): Promise<CompromisedPackage[]> => {
     // SSRF Protection
     await validateUrl(targetUrl);
 
@@ -168,8 +128,9 @@ export function fetchFromApi(sourceConfig: {
             } else if (type === 'csv') {
               resolve(parseCsv(data));
             }
-          } catch (e: any) {
-            reject(new Error(`Failed to parse API response: ${e.message}`));
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            reject(new Error(`Failed to parse API response: ${msg}`));
           }
         });
       });
@@ -185,10 +146,10 @@ export function fetchFromApi(sourceConfig: {
   return fetchUrl(url);
 }
 
-export async function fetchBannedPackages(
+export async function fetchCompromisedPackages(
   sources: SourceConfig[],
-): Promise<{ packages: BannedPackage[]; errors: string[] }> {
-  const allPackages: BannedPackage[] = [];
+): Promise<{ packages: CompromisedPackage[]; errors: string[] }> {
+  const allPackages: CompromisedPackage[] = [];
   const errors: string[] = [];
 
   for (const config of sources) {
@@ -196,8 +157,9 @@ export async function fetchBannedPackages(
     try {
       const pkgs = await fetchFromApi(config);
       allPackages.push(...pkgs);
-    } catch (error: any) {
-      errors.push(`Failed to fetch from ${name}: ${error.message}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      errors.push(`Failed to fetch from ${name}: ${msg}`);
     }
   }
 
@@ -207,7 +169,7 @@ export async function fetchBannedPackages(
   }
 
   // Deduplicate
-  const uniqueMap = new Map<string, BannedPackage>();
+  const uniqueMap = new Map<string, CompromisedPackage>();
   allPackages.forEach((p) => {
     const key = `${p.name}@${p.version}`;
     if (!uniqueMap.has(key)) {
@@ -218,13 +180,13 @@ export async function fetchBannedPackages(
   return { packages: Array.from(uniqueMap.values()), errors };
 }
 
-function collectPackages(pkgJson: any): Map<string, { section: string; version: string }> {
+function collectPackages(pkgJson: PackageJson): Map<string, { section: string; version: string }> {
   const sections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
 
   const results = new Map<string, { section: string; version: string }>();
 
   for (const section of sections) {
-    const entries = pkgJson[section];
+    const entries = (pkgJson as Record<string, unknown>)[section];
     if (!entries) continue;
     for (const [name, version] of Object.entries(entries) as [string, string][]) {
       results.set(name, { section, version });
@@ -234,14 +196,14 @@ function collectPackages(pkgJson: any): Map<string, { section: string; version: 
   return results;
 }
 
-interface BannedInfo {
+interface CompromisedInfo {
   versions: Set<string>;
   wildcard: boolean;
   hashes: Set<string>;
 }
 
-function buildBannedMap(entries: BannedPackage[]): Map<string, BannedInfo> {
-  const map = new Map<string, BannedInfo>();
+function buildCompromisedMap(entries: CompromisedPackage[]): Map<string, CompromisedInfo> {
+  const map = new Map<string, CompromisedInfo>();
   for (const { name, version } of entries) {
     if (!name) continue;
     const info = map.get(name) ?? { versions: new Set(), wildcard: false, hashes: new Set() };
@@ -251,10 +213,9 @@ function buildBannedMap(entries: BannedPackage[]): Map<string, BannedInfo> {
     } else {
       info.versions.add(ver);
     }
-    // @ts-ignore
-    if (entries.find((e) => e.name === name && e.version === version)?.integrity) {
-      // @ts-ignore
-      info.hashes.add(entries.find((e) => e.name === name && e.version === version)?.integrity);
+    const entry = entries.find((e) => e.name === name && e.version === version);
+    if (entry?.integrity) {
+      info.hashes.add(entry.integrity);
     }
     map.set(name, info);
   }
@@ -262,18 +223,18 @@ function buildBannedMap(entries: BannedPackage[]): Map<string, BannedInfo> {
 }
 
 function shouldFlag(
-  bannedInfo: BannedInfo | undefined,
+  compromisedInfo: CompromisedInfo | undefined,
   version: string,
   integrity?: string,
 ): boolean {
-  if (!bannedInfo) return false;
-  if (bannedInfo.wildcard) return true;
-  if (bannedInfo.versions.has(version)) return true;
-  if (integrity && bannedInfo.hashes.size > 0) {
+  if (!compromisedInfo) return false;
+  if (compromisedInfo.wildcard) return true;
+  if (compromisedInfo.versions.has(version)) return true;
+  if (integrity && compromisedInfo.hashes.size > 0) {
     // Check if any banned hash matches the package integrity
     // Integrity strings are usually "algo-hash", e.g. "sha512-..."
     // We should check if the banned hash is contained in the integrity string
-    for (const hash of bannedInfo.hashes) {
+    for (const hash of compromisedInfo.hashes) {
       if (integrity.includes(hash)) return true;
     }
   }
@@ -298,7 +259,7 @@ function findLockForHandler(projectRoot: string, handler: PackageManagerHandler)
   return null;
 }
 
-function detectPackageManager(projectRoot: string, packageJson: any) {
+function detectPackageManager(projectRoot: string, packageJson: PackageJson) {
   const warnings: string[] = [];
   const packageManagerField = packageJson?.packageManager;
   let preferred: PackageManagerHandler | null = null;
@@ -314,7 +275,9 @@ function detectPackageManager(projectRoot: string, packageJson: any) {
 
   const available = packageManagers
     .map((handler) => ({ handler, lockPath: findLockForHandler(projectRoot, handler) }))
-    .filter((entry) => !!entry.lockPath);
+    .filter(
+      (entry): entry is { handler: PackageManagerHandler; lockPath: string } => !!entry.lockPath,
+    );
 
   if (preferred) {
     const preferredLockPath = findLockForHandler(projectRoot, preferred);
@@ -327,7 +290,6 @@ function detectPackageManager(projectRoot: string, packageJson: any) {
       warnings.push(
         `package.json declares ${preferred.label ?? preferred.id}, but its lockfile is missing; falling back to ${fallback.handler.label ?? fallback.handler.id}.`,
       );
-      // @ts-ignore
       return { handler: fallback.handler, lockPath: fallback.lockPath, warnings };
     }
 
@@ -338,7 +300,6 @@ function detectPackageManager(projectRoot: string, packageJson: any) {
   }
 
   if (available.length === 1) {
-    // @ts-ignore
     return { handler: available[0].handler, lockPath: available[0].lockPath, warnings };
   }
 
@@ -347,14 +308,23 @@ function detectPackageManager(projectRoot: string, packageJson: any) {
     warnings.push(
       `Multiple lockfiles detected (${names}); defaulting to ${available[0].handler.label ?? available[0].handler.id}.`,
     );
-    // @ts-ignore
     return { handler: available[0].handler, lockPath: available[0].lockPath, warnings };
   }
 
   return { handler: null, lockPath: null, warnings };
 }
 
-export function analyzeScripts(pkgJson: any): string[] {
+interface PackageJson {
+  scripts?: Record<string, string>;
+  packageManager?: string;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
+  [key: string]: unknown;
+}
+
+export function analyzeScripts(pkgJson: PackageJson): string[] {
   const warnings: string[] = [];
   const scripts = pkgJson.scripts || {};
   const SUSPICIOUS_PATTERNS = [
@@ -369,6 +339,19 @@ export function analyzeScripts(pkgJson: any): string[] {
     { regex: /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/, label: 'IP address detected' },
     { regex: /bun\.sh/, label: 'Suspicious domain (bun.sh) - associated with Shai Hulud' },
     { regex: /node\s+setup_bun\.js/, label: 'Shai Hulud malware script (node setup_bun.js)' },
+    {
+      regex: /shred\s+-uvz\s+-n\s+1/,
+      label: 'Destructive command (shred -uvz -n 1) - Shai Hulud Wiper',
+    },
+    {
+      regex: /del\s+\/F\s+\/Q\s+\/S\s+"%USERPROFILE%\*"/,
+      label: 'Destructive command (Windows Profile Wiper) - Shai Hulud',
+    },
+    {
+      regex: /irm\s+bun\.sh\/install\.ps1\|iex/,
+      label: 'PowerShell Bun Install (Shai Hulud Dropper)',
+    },
+    { regex: /Sha1-Hulud:\s+The\s+Second\s+Coming/, label: 'Shai Hulud C2 Signature' },
   ];
 
   for (const [name, script] of Object.entries(scripts) as [string, string][]) {
@@ -381,17 +364,34 @@ export function analyzeScripts(pkgJson: any): string[] {
   return warnings;
 }
 
+function calculateEntropy(buffer: Buffer): number {
+  const frequencies = new Array(256).fill(0);
+  for (const byte of buffer) {
+    frequencies[byte]++;
+  }
+
+  let entropy = 0;
+  const len = buffer.length;
+  for (const count of frequencies) {
+    if (count > 0) {
+      const p = count / len;
+      entropy -= p * Math.log2(p);
+    }
+  }
+  return entropy;
+}
+
 /**
- * Scans the project for banned packages.
+ * Scans the project for compromised packages.
  * @param {string} projectRoot - The root directory of the project.
- * @param {string|Array} bannedListSource - Path to the CSV file OR an array of banned package objects.
+ * @param {string|Array} compromisedListSource - Path to the CSV file OR an array of compromised package objects.
  * @param {Object} [options] - Optional settings.
  * @param {boolean} [options.debug] - Enable debug logging.
  * @returns {Promise<{ matches: Array<{name: string, version: string, section: string}>, warnings: string[] }>}
  */
 export async function scanProject(
   projectRoot: string,
-  bannedListSource: string | BannedPackage[],
+  compromisedListSource: string | CompromisedPackage[],
   options?: { debug?: boolean },
 ) {
   const debug = (msg: string) => {
@@ -411,16 +411,16 @@ export async function scanProject(
   const packageJsonPath = path.join(resolvedRoot, 'package.json');
   const allWarnings: string[] = [];
 
-  let bannedEntries: BannedPackage[];
-  if (Array.isArray(bannedListSource)) {
-    bannedEntries = bannedListSource;
-  } else if (typeof bannedListSource === 'string') {
-    if (!fs.existsSync(bannedListSource)) {
-      throw new Error(`Banned list not found at ${bannedListSource}`);
+  let compromisedEntries: CompromisedPackage[];
+  if (Array.isArray(compromisedListSource)) {
+    compromisedEntries = compromisedListSource;
+  } else if (typeof compromisedListSource === 'string') {
+    if (!fs.existsSync(compromisedListSource)) {
+      throw new Error(`Compromised list not found at ${compromisedListSource}`);
     }
-    bannedEntries = loadCsv(bannedListSource);
+    compromisedEntries = loadCsv(compromisedListSource);
   } else {
-    throw new Error('Invalid banned list source. Must be a file path or an array.');
+    throw new Error('Invalid compromised list source. Must be a file path or an array.');
   }
 
   if (!fs.existsSync(packageJsonPath)) {
@@ -452,8 +452,25 @@ export async function scanProject(
       try {
         const fileBuffer = fs.readFileSync(filePath);
         const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+        // Entropy Check for large files (like bun_environment.js > 10MB)
+        const stats = fs.statSync(filePath);
+        let highEntropy = false;
+        if (stats.size > 5 * 1024 * 1024) {
+          // Check files > 5MB
+          const entropy = calculateEntropy(fileBuffer);
+          if (entropy > 7.5) {
+            // High entropy threshold (compressed/encrypted)
+            highEntropy = true;
+          }
+        }
+
         if (KNOWN_MALWARE_HASHES.has(hash)) {
           allWarnings.push(`CONFIRMED MALWARE file detected: '${file}' (Hash match: ${hash})`);
+        } else if (highEntropy) {
+          allWarnings.push(
+            `HIGH RISK file detected: '${file}' (High Entropy: ${highEntropy}, Size: ${stats.size} bytes)`,
+          );
         } else {
           allWarnings.push(`Suspicious file detected: '${file}' (associated with Shai Hulud)`);
         }
@@ -465,7 +482,7 @@ export async function scanProject(
     }
   }
 
-  const bannedMap = buildBannedMap(bannedEntries);
+  const compromisedMap = buildCompromisedMap(compromisedEntries);
   const declaredPackages = collectPackages(packageJson);
   debug(`Found ${declaredPackages.size} declared dependencies.`);
 
@@ -505,7 +522,7 @@ export async function scanProject(
   const matches: ScanMatch[] = [];
   const seen = new Set();
 
-  for (const [name, info] of bannedMap.entries()) {
+  for (const [name, info] of compromisedMap.entries()) {
     const versions = lockPackages.get(name);
     if (!versions || versions.size === 0) continue;
 

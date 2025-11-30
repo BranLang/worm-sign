@@ -1,4 +1,4 @@
-import { fetchBannedPackages, scanProject } from '../src/index';
+import { fetchCompromisedPackages, scanProject } from '../src/index';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -24,7 +24,7 @@ describe('Integration Tests', () => {
     // Note: This requires internet access.
     let bannedPackages;
     try {
-      const { packages } = await fetchBannedPackages([
+      const { packages } = await fetchCompromisedPackages([
         {
           url: 'https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/shai-hulud-2.0.csv',
           type: 'csv',

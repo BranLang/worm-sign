@@ -9,8 +9,8 @@ export default [
     ...tseslint.configs.recommended,
     {
         rules: {
-            "@typescript-eslint/no-explicit-any": "off",
-            "@typescript-eslint/ban-ts-comment": "off",
+            "@typescript-eslint/no-explicit-any": "warn",
+            "@typescript-eslint/ban-ts-comment": "warn",
             "no-undef": "off" // TypeScript handles this
         }
     }

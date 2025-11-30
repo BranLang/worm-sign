@@ -13,24 +13,36 @@ function cleanupVersion(raw: string): string {
   return raw.split('_')[0].split('(')[0].trim();
 }
 
+interface PnpmLockPackage {
+  resolution?: {
+    integrity?: string;
+  };
+  dependencies?: Record<string, string>;
+}
+
+interface PnpmLockFile {
+  packages?: Record<string, PnpmLockPackage>;
+}
+
 function parsePnpmLock(content: string): {
   packages: Map<string, Set<string>>;
   integrity: Map<string, Map<string, string>>;
 } {
   const packages = new Map<string, Set<string>>();
   const integrity = new Map<string, Map<string, string>>();
-  let parsed: any;
+  let parsed: PnpmLockFile | undefined;
   try {
-    parsed = yaml.load(content);
-  } catch (e: any) {
-    throw new Error(`YAML parse error: ${e.message}`);
+    parsed = yaml.load(content) as PnpmLockFile;
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`YAML parse error: ${msg}`);
   }
 
   if (!parsed || !parsed.packages) {
     return { packages, integrity };
   }
 
-  for (const [key, info] of Object.entries(parsed.packages) as [string, any][]) {
+  for (const [key, info] of Object.entries(parsed.packages) as [string, PnpmLockPackage][]) {
     let name: string, version: string;
 
     const cleanKey = key.startsWith('/') ? key.slice(1) : key;
@@ -77,8 +89,9 @@ function loadLockPackages(lockPath: string): LockPackageResult {
       warnings.push(`No packages parsed from ${path.basename(lockPath)}; check format.`);
     }
     return { packages, packageIntegrity: result.integrity, warnings, success: true };
-  } catch (err: any) {
-    warnings.push(`Unable to read ${path.basename(lockPath)}: ${err.message}`);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    warnings.push(`Unable to read ${path.basename(lockPath)}: ${msg}`);
     return { packages, warnings, success: false };
   }
 }

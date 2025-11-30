@@ -30,7 +30,9 @@ jobs:
       run: npm run lint
 
     - name: Build
-      run: npm run build
+      run: |
+        npm run build
+        chmod +x dist/bin/scan.js
 
     - name: Test
       run: npm test
@@ -42,4 +44,4 @@ jobs:
       run: npm audit
 
     - name: Run Worm Sign
-      run: npx worm-sign --offline --format sarif
+      run: node dist/bin/scan.js --offline --format sarif

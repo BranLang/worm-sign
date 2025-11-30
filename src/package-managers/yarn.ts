@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-// @ts-ignore
+// @ts-expect-error: No types available for @yarnpkg/lockfile
 import * as lockfile from '@yarnpkg/lockfile';
 import { LockPackageResult, PackageManagerHandler } from '../types';
 
@@ -9,29 +9,39 @@ function detectFromPackageManagerField(fieldValue: string): boolean {
   return fieldValue.startsWith('yarn');
 }
 
+interface YarnLockPackage {
+  version: string;
+  resolved?: string;
+  integrity?: string;
+  dependencies?: Record<string, string>;
+}
+
+type YarnLockFile = Record<string, YarnLockPackage>;
+
 function parseYarnLock(content: string): {
   packages: Map<string, Set<string>>;
   integrity: Map<string, Map<string, string>>;
 } {
   const packages = new Map<string, Set<string>>();
   const integrity = new Map<string, Map<string, string>>();
-  let parsed: any;
+  let parsed: YarnLockFile | undefined;
   try {
     const result = lockfile.parse(content);
     if (result.type === 'success' || result.type === 'merge') {
-      parsed = result.object;
+      parsed = result.object as YarnLockFile;
     } else {
-      parsed = result.object;
+      parsed = result.object as YarnLockFile;
     }
-  } catch (e: any) {
-    throw new Error(`Yarn lockfile parse error: ${e.message}`);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`Yarn lockfile parse error: ${msg}`);
   }
 
   if (!parsed) {
     return { packages, integrity };
   }
 
-  for (const [key, info] of Object.entries(parsed) as [string, any][]) {
+  for (const [key, info] of Object.entries(parsed) as [string, YarnLockPackage][]) {
     const lastAt = key.lastIndexOf('@');
     if (lastAt === -1) continue;
 
@@ -87,8 +97,9 @@ function loadLockPackages(lockPath: string): LockPackageResult {
       warnings.push(`No packages parsed from ${path.basename(lockPath)}; check format.`);
     }
     return { packages, packageIntegrity: result.integrity, warnings, success: true };
-  } catch (err: any) {
-    warnings.push(`Unable to read ${path.basename(lockPath)}: ${err.message}`);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    warnings.push(`Unable to read ${path.basename(lockPath)}: ${msg}`);
     return { packages, warnings, success: false };
   }
 }
