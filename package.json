@@ -19,7 +19,10 @@
   "keywords": [
     "security",
     "scanner",
-    "banned-packages",
+    "malware",
+    "shai-hulud",
+    "worm",
+    "vulnerabilities",
     "npm",
     "yarn",
     "pnpm"

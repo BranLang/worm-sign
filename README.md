@@ -133,20 +133,20 @@ Use the `--offline` flag to disable default remote fetches, and provide your int
 **CSV Example:**
 
 ```bash
-npx worm-sign --offline --url "https://internal.example.com/banned-packages.csv" --data-format csv
+npx worm-sign --offline --url "https://internal.example.com/compromised-packages.csv" --data-format csv
 ```
 
 **JSON Example:**
 
 ```bash
-npx worm-sign --offline --url "https://internal.example.com/banned-packages.json" --data-format json
+npx worm-sign --offline --url "https://internal.example.com/compromised-packages.json" --data-format json
 ```
 
 **Self-Signed Certificates:**
 If your internal server uses a self-signed certificate, use the `--insecure` flag to bypass SSL verification:
 
 ```bash
-npx worm-sign --offline --insecure --url "https://internal.example.com/banned-packages.json" --data-format json
+npx worm-sign --offline --insecure --url "https://internal.example.com/compromised-packages.json" --data-format json
 ```
 
 **If maintaining a fork:**
@@ -162,23 +162,9 @@ npx worm-sign --offline
 
 This will only scan against the local `.csv` files found in the `sources/` directory.
 
-## Acknowledgements
 
-The bundled data sources aggregate findings from various security research teams and community projects, including:
+---
 
-- [DataDog Security Labs](https://securitylabs.datadoghq.com/articles/shai-hulud-2.0-npm-worm/)
-- [Aikido Security](https://www.aikido.dev/blog/shai-hulud-strikes-again-hitting-zapier-ensdomains)
-- [Socket.dev](https://socket.dev/blog/shai-hulud-strikes-again-v2)
-- [GitGuardian](https://blog.gitguardian.com/shai-hulud-2/)
-- [Wiz](https://www.wiz.io/blog/shai-hulud-strikes-again)
-- [Cobenian/shai-hulud-detect](https://github.com/Cobenian/shai-hulud-detect)
-- [Phylum](https://blog.phylum.io/)
-- [Truesec](https://www.truesec.com/hub/blog)
-- [IBM X-Force](https://www.ibm.com/x-force)
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Command Line Options Reference
 
@@ -223,3 +209,23 @@ worm-sign --debug
 ```bash
 worm-sign --fetch --source datadog
 ```
+----
+
+## Acknowledgements
+
+The bundled data sources aggregate findings from various security research teams and community projects, including:
+
+- [DataDog Security Labs](https://securitylabs.datadoghq.com/articles/shai-hulud-2.0-npm-worm/)
+- [Aikido Security](https://www.aikido.dev/blog/shai-hulud-strikes-again-hitting-zapier-ensdomains)
+- [Socket.dev](https://socket.dev/blog/shai-hulud-strikes-again-v2)
+- [GitGuardian](https://blog.gitguardian.com/shai-hulud-2/)
+- [Wiz](https://www.wiz.io/blog/shai-hulud-strikes-again)
+- [Cobenian/shai-hulud-detect](https://github.com/Cobenian/shai-hulud-detect)
+- [Phylum](https://blog.phylum.io/)
+- [Truesec](https://www.truesec.com/hub/blog)
+- [IBM X-Force](https://www.ibm.com/x-force)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
