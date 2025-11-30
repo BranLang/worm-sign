@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "jest",
-    "test:smoke": "ts-node smoke_test.ts",
+    "test:smoke": "ts-node scripts/smoke_test.ts",
     "lint": "eslint src bin tests",
     "format": "prettier --write src bin tests",
     "prebuild": "ts-node scripts/encrypt-signatures.ts",
