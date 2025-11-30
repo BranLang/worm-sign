@@ -46,54 +46,6 @@ verify_installs/
 test_output/
 
 # Research
-/node_modules
-
-# Dependencies
-
-# Testing
-/coverage
-
-# Production
-/build
-/dist
-
-# Misc
-.DS_Store
-.env
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.npm
-*.log
-
-# Editor directories and files
-.idea
-.vscode
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Local Cache
-.worm-sign-cache.json
-
-# Temporary Test Directories
-verify_install*
-
-# Logs
-lint_output.txt
-
-# Archived Sources
-sources/archive/
-
-# Verification Directories
-verify_installs/
-
-# Test Output
-test_output/
-
-# Research
 .research/
 
 # Reports and Output
@@ -101,5 +53,5 @@ reports/
 output.json
 
 # Fixtures
-tests/fixtures/
+# tests/fixtures/ should NOT be ignored as it contains test data
 tests/temp_research_test/
