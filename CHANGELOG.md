@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.1.0] - 2025-11-30
+
+### Security & Transparency
+
+- **Removed Obfuscation**: Removed the "Vial" XOR encryption protocol. All malware signatures are now stored in plain text (`src/generated/signatures.ts`) to ensure full transparency and distinguish the tool from the malware it detects.
+- **Build Safety**: Excluded `tests/` directory from the npm package build to prevent test fixtures (like `setup_bun.js`) from being shipped to users.
+
+### Changed
+
+- **Documentation**: Added a "Transparency & Signatures" section to README explaining the decision to use plain text signatures.
+
 ## [3.0.1] - 2025-11-30
 
 ### Fixed
