@@ -1,22 +1,23 @@
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import * as path from 'path';
 
 const scanBin = path.resolve(__dirname, '../dist/bin/scan.js');
 
-function runCommand(args: string) {
+function runCommand(args: string[]) {
   try {
-    console.log(`Running: node ${scanBin} ${args}`);
-    const out = execSync(`node ${scanBin} ${args} 2>&1`, { encoding: 'utf8', stdio: 'pipe' });
+    console.log('Running:', ['node', scanBin, ...args].join(' '));
+    const out = execFileSync('node', [scanBin, ...args], { encoding: 'utf8', stdio: 'pipe' });
     // Strip ANSI codes (more robust regex)
     // eslint-disable-next-line no-control-regex
     return out.replace(/\u001b\[[0-9;]*m/g, '');
-  } catch (error: unknown) {
+  } catch (error: any) {
     // If the command fails (exit code != 0), return the stdout/stderr so we can inspect it
     // Some commands might fail if they find vulnerabilities, but in this repo they shouldn't.
     // If they do fail, we want to know why.
-    const err = error as { stdout: string; stderr: string };
+    const stdout = error.stdout ? error.stdout.toString('utf8') : '';
+    const stderr = error.stderr ? error.stderr.toString('utf8') : '';
     throw new Error(
-      `Command failed: node ${scanBin} ${args}\nOutput: ${err.stdout}\nError: ${err.stderr}`,
+      `Command failed: node ${scanBin} ${args.join(' ')}\nOutput: ${stdout}\nError: ${stderr}`,
     );
   }
 }
@@ -24,14 +25,14 @@ function runCommand(args: string) {
 describe('README Commands Audit', () => {
   // 1. Basic Scan
   test('worm-sign (Basic Scan)', () => {
-    const output = runCommand('');
+    const output = runCommand([]);
     expect(output).toContain('WORM SIGN');
     expect(output).toContain('No wormsign detected');
   });
 
   // 2. Fetch Latest Data
   test('worm-sign --fetch', () => {
-    const output = runCommand('--fetch');
+    const output = runCommand(['--fetch']);
     expect(output).toContain('Fetched');
     expect(output).toContain('No wormsign detected');
   }, 30000); // Increase timeout for network
@@ -42,7 +43,7 @@ describe('README Commands Audit', () => {
     // or we can use a real one if we have a stable one.
     // Let's use a non-existent one to test graceful failure which is also documented.
     const output = runCommand(
-      '--url "https://this-domain-does-not-exist.test/vulns.json" --data-format json',
+      ['--url', 'https://this-domain-does-not-exist.test/vulns.json', '--data-format', 'json'],
     );
     expect(output).toContain('Failed to fetch'); // Should warn about fetch failure
     expect(output).toContain('No wormsign detected'); // But still succeed with local sources
@@ -51,7 +52,7 @@ describe('README Commands Audit', () => {
   // 4. Custom Data Source (CSV)
   test('worm-sign --url ... --data-format csv', () => {
     const output = runCommand(
-      '--url "https://this-domain-does-not-exist.test/vulns.csv" --data-format csv',
+      ['--url', 'https://this-domain-does-not-exist.test/vulns.csv', '--data-format', 'csv'],
     );
     expect(output).toContain('Failed to fetch');
     expect(output).toContain('No wormsign detected');
