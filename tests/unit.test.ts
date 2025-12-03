@@ -266,11 +266,26 @@ describe('analyzeScripts', () => {
     expect(findings).toHaveLength(7);
     expect(findings).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ message: expect.stringContaining('Destructive command'), severity: 'high' }),
-        expect.objectContaining({ message: expect.stringContaining('Network request'), severity: 'medium' }),
-        expect.objectContaining({ message: expect.stringContaining('Netcat reverse shell'), severity: 'critical' }),
-        expect.objectContaining({ message: expect.stringContaining('Hex escape sequence'), severity: 'high' }),
-        expect.objectContaining({ message: expect.stringContaining('IP address detected'), severity: 'medium' }),
+        expect.objectContaining({
+          message: expect.stringContaining('Destructive command'),
+          severity: 'high',
+        }),
+        expect.objectContaining({
+          message: expect.stringContaining('Network request'),
+          severity: 'medium',
+        }),
+        expect.objectContaining({
+          message: expect.stringContaining('Netcat reverse shell'),
+          severity: 'critical',
+        }),
+        expect.objectContaining({
+          message: expect.stringContaining('Hex escape sequence'),
+          severity: 'high',
+        }),
+        expect.objectContaining({
+          message: expect.stringContaining('IP address detected'),
+          severity: 'medium',
+        }),
       ]),
     );
   });

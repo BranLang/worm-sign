@@ -8,7 +8,6 @@ import {
   fetchCompromisedPackages,
   loadJson,
   loadConfig,
-  SOURCES,
   SourceConfig,
 } from '../src/index';
 import { loadCsv } from '../src/utils/csv';
@@ -55,16 +54,15 @@ program
     'Scan your project for packages compromised by the Shai Hulud malware (supports name/version and hash detection).',
   )
   .version(version)
-  .option('-f, --fetch', 'Fetch the latest compromised packages from the API')
-  .option('-s, --source <source>', 'Specific data source to fetch from', 'all')
-  .option('-u, --url <url>', 'Custom API URL to fetch compromised packages from')
+  .option('-f, --fetch', 'Fetch the latest banned packages from the API')
+  .option('--offline', 'Disable fetching of remote sources')
+  .option('-u, --url <url>', 'Custom API URL to fetch banned packages from')
   .option('--data-format <format>', 'Data format for custom URL (json, csv)', 'json')
   .option('-p, --path <path>', 'Path to the project to scan (defaults to current directory)')
   .option('--format <format>', 'Output format (text, sarif)', 'text')
   .option('--no-cache', 'Disable caching of API responses')
   .option('--install-hook', 'Install a pre-commit hook to run worm-sign')
   .option('--dry-run', 'Run scan but always exit with 0 (useful for CI)')
-  .option('--offline', 'Disable network requests (implies --no-fetch)')
   .option('--insecure', 'Disable SSL certificate verification (use with caution)')
   .option('--debug', 'Enable debug logging')
   .action(async (options) => {
@@ -188,19 +186,6 @@ npx worm-sign --fetch
           name: 'custom-cli',
           insecure: options.insecure,
         });
-      } else if (options.fetch && !options.offline) {
-        // If no custom URL, check options.source
-        if (options.source === 'all') {
-          Object.entries(SOURCES).forEach(([name, config]) => {
-            sourcesToFetch.push({ ...config, name });
-          });
-        } else if (SOURCES[options.source]) {
-          sourcesToFetch.push({ ...SOURCES[options.source], name: options.source });
-        } else {
-          throw new Error(
-            `Unknown source '${options.source}'. Available: ${Object.keys(SOURCES).join(', ')}, all`,
-          );
-        }
       }
 
       // 3. Fetch remote sources
@@ -208,12 +193,14 @@ npx worm-sign --fetch
         // Filter by allowedSources if configured
         if (config.allowedSources && config.allowedSources.length > 0) {
           const allowed = new Set(config.allowedSources);
-          const filtered = sourcesToFetch.filter(s => s.name && allowed.has(s.name));
+          const filtered = sourcesToFetch.filter((s) => s.name && allowed.has(s.name));
 
           if (filtered.length < sourcesToFetch.length) {
-            const blocked = sourcesToFetch.filter(s => s.name && !allowed.has(s.name));
+            const blocked = sourcesToFetch.filter((s) => s.name && !allowed.has(s.name));
             if (options.format === 'text') {
-              blocked.forEach(s => console.warn(chalk.yellow(`Warning: Source '${s.name}' blocked by configuration.`)));
+              blocked.forEach((s) =>
+                console.warn(chalk.yellow(`Warning: Source '${s.name}' blocked by configuration.`)),
+              );
             }
           }
           sourcesToFetch.length = 0;
@@ -282,10 +269,14 @@ npx worm-sign --fetch
         console.log(chalk.blue(`Scanning project at: ${projectRoot}`));
       }
 
-      const { matches, warnings, findings } = await scanProject(projectRoot, compromisedListSource, {
-        debug: options.debug,
-        config,
-      });
+      const { matches, warnings, findings } = await scanProject(
+        projectRoot,
+        compromisedListSource,
+        {
+          debug: options.debug,
+          config,
+        },
+      );
 
       if (options.format === 'sarif') {
         const sarifReport = generateSarif(matches, warnings);
@@ -325,7 +316,7 @@ npx worm-sign --fetch
           console.log('');
 
           if (findings && findings.length > 0) {
-            findings.forEach(f => {
+            findings.forEach((f) => {
               let color = chalk.yellow;
               if (f.severity === 'high') color = chalk.red;
               if (f.severity === 'critical') color = chalk.bgRed.white;
@@ -361,7 +352,7 @@ npx worm-sign --fetch
       } else if (msg.includes('API request failed')) {
         console.log(
           chalk.dim(
-            'Hint: Check your internet connection or try using --source koi for an alternative data source.',
+            'Hint: Check your internet connection or run with --offline to skip remote fetches.',
           ),
         );
       }

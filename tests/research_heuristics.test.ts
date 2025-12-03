@@ -33,9 +33,9 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
         expect.arrayContaining([
           expect.objectContaining({
             message: "Suspicious script detected in 'cleanup': Known Malware Signature Match",
-            severity: 'critical'
-          })
-        ])
+            severity: 'critical',
+          }),
+        ]),
       );
     });
 
@@ -50,9 +50,9 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
         expect.arrayContaining([
           expect.objectContaining({
             message: "Suspicious script detected in 'cleanup': Known Malware Signature Match",
-            severity: 'critical'
-          })
-        ])
+            severity: 'critical',
+          }),
+        ]),
       );
     });
 
@@ -67,9 +67,9 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
         expect.arrayContaining([
           expect.objectContaining({
             message: "Suspicious script detected in 'install': Known Malware Signature Match",
-            severity: 'critical'
-          })
-        ])
+            severity: 'critical',
+          }),
+        ]),
       );
     });
 
@@ -85,9 +85,9 @@ describe('Research Heuristics (Shai-Hulud 2.0)', () => {
         expect.arrayContaining([
           expect.objectContaining({
             message: "Suspicious script detected in 'postinstall': Known Malware Signature Match",
-            severity: 'critical'
-          })
-        ])
+            severity: 'critical',
+          }),
+        ]),
       );
     });
   });

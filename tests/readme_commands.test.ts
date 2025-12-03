@@ -152,12 +152,4 @@ describe('README Commands Audit', () => {
     // Let's check if it runs without error at least.
     expect(output).toContain('No wormsign detected');
   });
-
-  // 15. Specific Source
-  test('worm-sign --fetch --source <source>', () => {
-    // We use 'datadog' as it's a valid source key
-    const output = runCommand('--fetch --source datadog');
-    expect(output).toContain('Fetched');
-    expect(output).toContain('No wormsign detected');
-  }, 30000);
 });

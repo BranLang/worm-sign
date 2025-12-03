@@ -287,7 +287,7 @@ export async function scanProject(
   const scriptFindings = analyzeScripts(packageJson, options?.config);
   allFindings.push(...scriptFindings);
   // Backwards compatibility: push messages to warnings
-  scriptFindings.forEach(f => allWarnings.push(f.message));
+  scriptFindings.forEach((f) => allWarnings.push(f.message));
 
   // 2. Check for known malware files in root
   const KNOWN_MALWARE_HASHES = new Set([
