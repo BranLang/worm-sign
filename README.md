@@ -7,12 +7,12 @@
 
 > "We have wormsign the likes of which even God has never seen."
 
-**Worm Sign** is a specialized scanner designed to detect and block npm packages compromised by the **Shai Hulud** malware campaign. It scans your project's `package.json` and lockfiles against a curated list of **2,214 known compromised packages**.
+**Worm Sign** is a specialized scanner designed to detect and block npm packages compromised by the **Shai Hulud** malware campaign. It scans your project's `package.json` and lockfiles against a curated list of **1,717 known compromised packages**.
 
 ## Features
 
 - **Safe Static Analysis**: Uses `@npmcli/arborist` to inspect the dependency tree without executing any lifecycle scripts, neutralizing the malware's "Dead Man's Switch".
-- **Detects Shai Hulud**: Identifies **2,214** packages known to be compromised by the Shai Hulud malware.
+- **Detects Shai Hulud**: Identifies **1,717** packages known to be compromised by the Shai Hulud malware.
 - **Hash-Based Detection**: Detects compromised packages by their integrity hash (SHA-1/SHA-512), catching variants even if they are renamed or version-spoofed.
 - **Lockfile Required**: Scans `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. **A lockfile is required for analysis.**
 - **API Integration**: Fetches the latest banned list from a remote API (customizable).
@@ -99,6 +99,7 @@ The CSV format also supports an optional `integrity` column (or `hash`, `shasum`
 name,version,integrity
 safe-package,1.0.0,sha512-badhash...
 ```
+
 
 ### Output Formats
 

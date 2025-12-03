@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.2] - 2025-12-02
+
+### Changed
+
+- **Data Hygiene**: Removed 497 rows without versions from `sources/known-threats.csv`, leaving 1,717 versioned entries to avoid ambiguous matches.
+- **Docs**: Updated README to reflect the new package count and clarify the optional `reason`/`integrity` headers retained for upstream metadata.
+
 ## [3.1.1] - 2025-12-01
 
 ### Enterprise Hardening
