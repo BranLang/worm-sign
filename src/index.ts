@@ -8,7 +8,7 @@ import Arborist from '@npmcli/arborist';
 import { analyzeScripts } from './analysis';
 export { analyzeScripts };
 import { EntropyCalculator } from './heuristics/entropy';
-import { MALWARE_FILENAMES } from './generated/signatures';
+import { MALWARE_FILENAMES, AXIOS_MALWARE_HASHES } from './generated/signatures';
 import { CompromisedPackage, ScanMatch } from './types';
 import { validateUrl } from './utils/validators';
 
@@ -291,10 +291,13 @@ export async function scanProject(
 
   // 2. Check for known malware files in root
   const KNOWN_MALWARE_HASHES = new Set([
+    // Shai-Hulud 2.0
     'a3894003ad1d293ba96d77881ccd2071446dc3f65f434669b49b3da92421901a', // setup_bun.js
     '62ee164b9b306250c1172583f138c9614139264f889fa99614903c12755468d0', // bun_environment.js
     'cbb9bc5a8496243e02f3cc080efbe3e4a1430ba0671f2e43a202bf45b05479cd', // bun_environment.js
     'f099c5d9ec417d4445a0328ac0ada9cde79fc37410914103ae9c609cbc0ee068', // bun_environment.js
+    // Axios supply chain attack (March 2026) - stage-2 payloads
+    ...AXIOS_MALWARE_HASHES,
   ]);
 
   for (const file of MALWARE_FILENAMES) {
@@ -323,8 +326,14 @@ export async function scanProject(
 
         const finalHash = hash.digest('hex');
 
+        const campaign = AXIOS_MALWARE_HASHES.has(finalHash)
+          ? 'Axios supply chain attack'
+          : 'Shai Hulud';
+
         if (KNOWN_MALWARE_HASHES.has(finalHash)) {
-          allWarnings.push(`CONFIRMED MALWARE file detected: '${file}' (Hash match: ${finalHash})`);
+          allWarnings.push(
+            `CONFIRMED MALWARE file detected: '${file}' (Hash match: ${finalHash}, Campaign: ${campaign})`,
+          );
         } else if (isLarge && entropyCalc) {
           const entropy = entropyCalc.digest();
           // Threshold 7.0 for packed malware in JS context
@@ -333,9 +342,9 @@ export async function scanProject(
               `HIGH RISK file detected: '${file}' (High Entropy: ${entropy.toFixed(2)}, Size: ${stats.size} bytes)`,
             );
           }
-          allWarnings.push(`Suspicious file detected: '${file}' (associated with Shai Hulud)`);
+          allWarnings.push(`Suspicious file detected: '${file}' (associated with known malware)`);
         } else {
-          allWarnings.push(`Suspicious file detected: '${file}' (associated with Shai Hulud)`);
+          allWarnings.push(`Suspicious file detected: '${file}' (associated with known malware)`);
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);

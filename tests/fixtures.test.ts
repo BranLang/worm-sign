@@ -44,10 +44,10 @@ describe('Fixture Tests', () => {
     const fixturePath = path.join(FIXTURES_DIR, 'shai-hulud-files');
     const { warnings } = await scanProject(fixturePath, []);
     expect(warnings).toContain(
-      "Suspicious file detected: 'setup_bun.js' (associated with Shai Hulud)",
+      "Suspicious file detected: 'setup_bun.js' (associated with known malware)",
     );
     expect(warnings).toContain(
-      "Suspicious file detected: 'bun_environment.js' (associated with Shai Hulud)",
+      "Suspicious file detected: 'bun_environment.js' (associated with known malware)",
     );
     expect(warnings).toContain(
       "Suspicious script detected in 'preinstall': Known Malware Signature Match",

@@ -7,41 +7,50 @@
 
 > "We have wormsign the likes of which even God has never seen."
 
-**Worm Sign** is a specialized scanner designed to detect and block npm packages compromised by the **Shai Hulud** malware campaign. It scans your project's `package.json` and lockfiles against a curated list of **1,717 known compromised packages**.
+**Worm Sign** is a security scanner that detects npm packages compromised by supply chain attacks. It scans your project's `package.json` and lockfiles against **1,726+ known compromised packages** using hash verification, signature matching, and behavioral heuristics.
+
+> **Now detecting the [March 2026 Axios supply chain attack](#axios-supply-chain-attack-march-2026)** — the compromised `axios` versions that deployed a cross-platform RAT to 83M+ weekly downloaders.
+
+## Axios Supply Chain Attack (March 2026)
+
+On March 31, 2026, the `axios` HTTP client was compromised after the primary maintainer's npm account was hijacked. Two malicious versions (`1.14.1` and `0.30.4`) injected `plain-crypto-js` as a phantom dependency — a package whose sole purpose was to execute a `postinstall` script that drops a cross-platform RAT targeting macOS, Windows, and Linux.
+
+**If you installed axios between ~00:21 and ~03:30 UTC on March 31, run `worm-sign` immediately.**
+
+Worm Sign detects this attack through multiple layers:
+
+- **Compromised Packages**: Flags `axios@1.14.1`, `axios@0.30.4`, `plain-crypto-js@4.2.1`/`4.2.0`, and related attacker packages (`@shadanai/openclaw`, `@qqbrowser/openclaw-qbot`).
+- **C2 Infrastructure**: Detects C2 domains (`sfrclak.com`, `calltan.com`, `callnrwise.com`) and IP (`142.11.206.73`).
+- **RAT Payload Hashes**: SHA-256 verification of stage-2 payloads for macOS (`com.apple.act.mond`), Windows (`6202033.ps1`), and Linux (`ld.py`).
+- **Dropper Patterns**: Identifies `execSync`+`nohup` background execution, self-deleting `setup.js` scripts, XOR obfuscation with key `OrDeR_7077`, and the spoofed IE8 User-Agent string.
+- **PowerShell Vectors**: Catches `irm|iex` remote execution patterns used in Windows payload delivery.
 
 ## Features
 
-- **Safe Static Analysis**: Uses `@npmcli/arborist` to inspect the dependency tree without executing any lifecycle scripts, neutralizing the malware's "Dead Man's Switch".
-- **Detects Shai Hulud**: Identifies **1,717** packages known to be compromised by the Shai Hulud malware.
-- **Hash-Based Detection**: Detects compromised packages by their integrity hash (SHA-1/SHA-512), catching variants even if they are renamed or version-spoofed.
-- **Lockfile Required**: Scans `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. **A lockfile is required for analysis.**
-- **API Integration**: Fetches the latest banned list from a remote API (customizable).
-- **Smart Caching**: Caches API responses locally for 1 hour to improve performance.
-- **Heuristic Analysis**: Scans `package.json` scripts for suspicious patterns (e.g., `curl | bash`, `rm -rf`, reverse shells, obfuscated code).
-- **Entropy Analysis**: Detects high-entropy files (potential obfuscated malware payloads) > 5MB.
-- **Behavioral Detection**: Identifies destructive commands (`shred`, `del`) and known C2 signatures.
-- **SARIF Output**: Generates SARIF reports for integration with GitHub Security.
-- **CI/CD Ready**: Easily integrates into GitHub Actions or other CI pipelines.
-
-## Shai-Hulud 2.0 Detection
-
-Worm Sign includes advanced detection logic specifically for the **Shai-Hulud 2.0** campaign:
-
-- **File Entropy**: Analyzes large files (>5MB) for high entropy, a common indicator of packed/obfuscated malware payloads (e.g., `bun_environment.js`).
-- **Destructive Commands**: Flags scripts containing system-wiping commands like `shred -uvz -n 1` (Linux/macOS) and `del /F /Q /S "%USERPROFILE%*"` (Windows).
-- **Installation Vectors**: Detects specific installation patterns used by the malware, such as `irm bun.sh/install.ps1|iex` (PowerShell Bun install).
-- **C2 Signatures**: Scans for known Command & Control signatures like `"Sha1-Hulud: The Second Coming"`.
+- **Safe Static Analysis**: Uses `@npmcli/arborist` to inspect the dependency tree without executing any lifecycle scripts — the malware never gets a chance to run.
+- **Multi-Campaign Detection**: Covers the Axios supply chain attack (March 2026) and the Shai Hulud malware campaign (1,717+ packages).
+- **Hash-Based Detection**: Verifies packages by integrity hash (SHA-1/SHA-512), catching variants even if renamed or version-spoofed.
+- **Heuristic Analysis**: Scans `package.json` scripts for suspicious patterns — RAT droppers, `curl | bash`, reverse shells, XOR obfuscation, self-deleting scripts, and more.
+- **Entropy Analysis**: Detects high-entropy files (>5MB) that indicate packed/obfuscated malware payloads.
+- **C2 Signature Matching**: Identifies known command & control domains, IPs, and beacon patterns.
+- **Lockfile Support**: Scans `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`.
+- **SARIF Output**: Generates SARIF 2.1.0 reports for GitHub Security integration.
+- **CI/CD Ready**: Integrates into GitHub Actions or any CI pipeline. Fails the build on detection (exit code 1).
 
 ## Safety & Trust
 
-### 🛡️ "Dead Man's Switch" Neutralization
-Shai-Hulud 2.0 contains a retaliatory wiper that triggers if analysis is detected or network calls fail. **Worm Sign** neutralizes this by using **Safe Static Analysis**. It parses your lockfile directly (using `Arborist.loadVirtual()`) to build an in-memory dependency graph. It **never** runs `npm install` or executes `preinstall`/`postinstall` scripts during scanning, ensuring the malware is never given a chance to execute.
+### 🛡️ Safe Static Analysis
+Worm Sign parses your lockfile directly (using `Arborist.loadVirtual()`) to build an in-memory dependency graph. It **never** runs `npm install` or executes `preinstall`/`postinstall` scripts during scanning — this is critical because both the Axios attack (postinstall RAT dropper) and Shai-Hulud 2.0 (retaliatory wiper "Dead Man's Switch") activate through lifecycle scripts.
 
 ### 🔍 Transparency & Signatures
-To ensure full transparency, **Worm Sign** stores all malware signatures (filenames, patterns) in plain text within the source code. We explicitly avoid obfuscation techniques to distinguish this security tool from the malware it detects. You can inspect the signatures in `src/generated/signatures.ts`.
+All malware signatures (filenames, patterns, hashes) are stored in plain text within the source code. We explicitly avoid obfuscation techniques to distinguish this security tool from the malware it detects. You can inspect the signatures in `src/generated/signatures.ts`.
 
 ### 🔐 Trusted Publishing
 This package is published with **npm provenance**. You can verify the build attestation on the npm registry to confirm that the package you are installing was built from this specific GitHub repository and has not been tampered with.
+
+## Shai-Hulud 2.0 Detection
+
+Worm Sign also covers the **Shai-Hulud 2.0** worm campaign (1,717+ compromised packages) with detection for high-entropy packed payloads, destructive wiper commands (`shred`, `del`), PowerShell installation vectors, and C2 signatures.
 
 ## Installation
 
@@ -244,17 +253,23 @@ worm-sign --debug
 
 ## Acknowledgements
 
-The bundled data sources aggregate findings from various security research teams and community projects, including:
+Threat intelligence is aggregated from the security research community, including:
 
+**Axios Attack:**
+- [Socket.dev — Axios Compromise Analysis](https://socket.dev/blog/axios-npm-package-compromised)
+- [Snyk — Axios Supply Chain Attack](https://snyk.io/blog/axios-npm-package-compromised-supply-chain-attack-delivers-cross-platform/)
+- [Huntress — Axios Supply Chain Compromise](https://www.huntress.com/blog/supply-chain-compromise-axios-npm-package)
+- [StepSecurity — Axios RAT Analysis](https://www.stepsecurity.io/blog/axios-compromised-on-npm-malicious-versions-drop-remote-access-trojan)
+- [Aikido Security — Axios Compromised](https://www.aikido.dev/blog/axios-npm-compromised-maintainer-hijacked-rat)
+
+**Shai-Hulud:**
 - [DataDog Security Labs](https://securitylabs.datadoghq.com/articles/shai-hulud-2.0-npm-worm/)
-- [Aikido Security](https://www.aikido.dev/blog/shai-hulud-strikes-again-hitting-zapier-ensdomains)
 - [Socket.dev](https://socket.dev/blog/shai-hulud-strikes-again-v2)
 - [GitGuardian](https://blog.gitguardian.com/shai-hulud-2/)
 - [Wiz](https://www.wiz.io/blog/shai-hulud-strikes-again)
 - [Cobenian/shai-hulud-detect](https://github.com/Cobenian/shai-hulud-detect)
 - [Phylum](https://blog.phylum.io/)
-- [Truesec](https://www.truesec.com/hub/blog)
-- [IBM X-Force](https://www.ibm.com/x-force)
+- [Aikido Security](https://www.aikido.dev/blog/shai-hulud-strikes-again-hitting-zapier-ensdomains)
 
 ## License
 
