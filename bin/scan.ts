@@ -114,7 +114,7 @@ npx worm-sign --fetch
 
     if (options.format === 'text') {
       console.log(
-        boxen(duneGradient('WORM SIGN\nShai Hulud Scanner'), {
+        boxen(duneGradient('WORM SIGN\nnpm supply chain scanner'), {
           padding: 1,
           borderStyle: 'round',
           borderColor: 'yellow',
