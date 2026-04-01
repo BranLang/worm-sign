@@ -63,6 +63,30 @@ export function analyzeScripts(pkgJson: PackageJson, config?: WormSignConfig): F
       id: 'ip-address',
       severity: 'medium',
     },
+    {
+      regex: /execSync\s*\(.*nohup/,
+      label: 'Background process execution via execSync+nohup (RAT dropper pattern)',
+      id: 'execsync-nohup',
+      severity: 'critical',
+    },
+    {
+      regex: /fs\.unlink.*setup\.(js|ts)/,
+      label: 'Self-deleting dropper script',
+      id: 'self-deleting-script',
+      severity: 'critical',
+    },
+    {
+      regex: /irm\s+.*\|.*iex/,
+      label: 'PowerShell remote execution (irm|iex)',
+      id: 'powershell-remote-exec',
+      severity: 'critical',
+    },
+    {
+      regex: /xor|XOR.*cipher|String\.fromCharCode\s*\(\s*.*\^\s*\d+/,
+      label: 'XOR-based string obfuscation',
+      id: 'xor-obfuscation',
+      severity: 'high',
+    },
   ] as const;
 
   for (const [name, script] of Object.entries(scripts) as [string, string][]) {

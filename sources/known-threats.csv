@@ -1716,3 +1716,12 @@ zapier-scripts,7.8.4,,
 zuper-cli,1.0.1,,
 zuper-sdk,1.0.57,,
 zuper-stream,2.0.9,,
+axios,1.14.1,axios supply chain attack - maintainer account hijacked - RAT dropper via plain-crypto-js,sha1-JTUyZTQ5ZjIzMjIwNDk2NjY4NzFjZWE4MGE1ZDBkNmFkYzcwMGNh
+axios,0.30.4,axios supply chain attack - maintainer account hijacked - RAT dropper via plain-crypto-js,sha1-ZDZmM2Y2MmZkM2I5ZjU0MzJmNTc4MmI2MmQ4Y2ZkNTI0N2Q1ZWU3MQ==
+plain-crypto-js,4.2.1,axios attack - phantom dependency - postinstall RAT dropper,sha1-MDdkODg5ZTJkYWRjZTZmMzkxMGRjYmMyNTMzMTdkMjhjYTYxYzc2Ng==
+plain-crypto-js,4.2.0,axios attack - staging/decoy version for plain-crypto-js,
+@shadanai/openclaw,2026.3.28-2,axios attack - related malicious package,
+@shadanai/openclaw,2026.3.28-3,axios attack - related malicious package,
+@shadanai/openclaw,2026.3.31-1,axios attack - related malicious package,
+@shadanai/openclaw,2026.3.31-2,axios attack - related malicious package,
+@qqbrowser/openclaw-qbot,0.0.130,axios attack - related malicious package,
