@@ -1,5 +1,28 @@
 # Changelog
 
+## [4.0.0] - 2026-04-01
+
+### Added
+
+- **Axios Supply Chain Attack Detection**: Full coverage for the March 31, 2026 axios npm compromise. Detects `axios@1.14.1`, `axios@0.30.4`, `plain-crypto-js@4.2.1`/`4.2.0`, `@shadanai/openclaw`, and `@qqbrowser/openclaw-qbot`.
+- **C2 Infrastructure Signatures**: Detects C2 domains (`sfrclak.com`, `calltan.com`, `callnrwise.com`), C2 IP (`142.11.206.73`), beacon identifiers (`packages.npm.org/product`), and the spoofed IE8 User-Agent string.
+- **RAT Payload Hashes**: SHA-256 verification for stage-2 payloads — macOS (`com.apple.act.mond`), Windows (`6202033.ps1`), and Linux (`ld.py`).
+- **New Heuristic Rules**:
+  - `execsync-nohup`: Detects background process execution via `execSync`+`nohup` (RAT dropper pattern). Severity: critical.
+  - `self-deleting-script`: Detects `fs.unlink` on `setup.js`/`setup.ts` (dropper self-destruction). Severity: critical.
+  - `powershell-remote-exec`: Detects `irm|iex` PowerShell remote execution. Severity: critical.
+  - `xor-obfuscation`: Detects XOR-based string obfuscation patterns. Severity: high.
+- **Malware File Detection**: Added 5 new filenames to monitor: `setup.js`, `com.apple.act.mond`, `ld.py`, `6202033.ps1`, `6202033.vbs`.
+- **Campaign-Aware Reporting**: Warning messages now identify which campaign a detection belongs to (Axios vs Shai Hulud).
+
+### Changed
+
+- **Breaking**: Package count increased from 1,717 to 1,726+ with 9 new axios-related entries in `known-threats.csv`.
+- **README**: Restructured to lead with the Axios attack. Shai-Hulud 2.0 section condensed and moved below Safety & Trust.
+- **Description**: Updated package description to reflect multi-campaign scanning capability.
+- **Dependencies**: Updated all semver-compatible dependencies to latest versions.
+- **Acknowledgements**: Added axios research sources (Socket.dev, Snyk, Huntress, StepSecurity, Aikido) and reorganized with axios sources first.
+
 ## [3.1.2] - 2025-12-02
 
 ### Changed
