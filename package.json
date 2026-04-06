@@ -78,7 +78,7 @@
     "@types/node": "^24.10.1",
     "@types/npmcli__arborist": "^6.3.1",
     "@types/ora": "^3.1.0",
-    "eslint": "^9.39.1",
+    "eslint": "^10.2.0",
     "globals": "^16.5.0",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
