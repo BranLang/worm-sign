@@ -79,7 +79,7 @@
     "@types/npmcli__arborist": "^6.3.1",
     "@types/ora": "^3.1.0",
     "eslint": "^9.39.1",
-    "globals": "^16.5.0",
+    "globals": "^17.5.0",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
     "lint-staged": "^16.2.7",
