@@ -303,6 +303,9 @@ npx worm-sign --fetch
         }
       }
 
+      const hasBlockingFinding =
+        findings?.some((f) => f.severity === 'critical' || f.severity === 'high') ?? false;
+
       if (matches.length > 0) {
         if (options.dryRun) {
           if (options.format === 'text') {
@@ -325,6 +328,19 @@ npx worm-sign --fetch
           } else {
             warnings.forEach((w: string) => console.warn(chalk.yellow(`Warning: ${w}`)));
           }
+        }
+        if (hasBlockingFinding) {
+          if (options.format === 'text') {
+            console.log(
+              chalk.red.bold(
+                '\n🚫 Critical or high-severity heuristic findings detected. Failing build.',
+              ),
+            );
+          }
+          if (options.dryRun) {
+            process.exit(0);
+          }
+          process.exit(1);
         }
         if (options.format === 'text') {
           console.log(chalk.green('\nNo wormsign detected.'));

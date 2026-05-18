@@ -1,4 +1,6 @@
 import { spawnSync } from 'child_process';
+import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 const scriptPath = path.join(__dirname, '..', 'bin', 'scan.ts');
@@ -49,4 +51,59 @@ describe('CLI Integration', () => {
     expect(child.stdout).not.toContain('Fetching from');
     expect(child.status).toBe(0);
   });
+
+  test('exits 1 on critical heuristic finding even without compromised-package match', () => {
+    // Manifest-only TanStack-style malicious optionalDependencies pin.
+    // No package in known-threats.csv matches by name@version, but the
+    // manifest heuristic should fail the build on its own.
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wormsign-cli-crit-'));
+    try {
+      fs.writeFileSync(
+        path.join(tmp, 'package.json'),
+        JSON.stringify({
+          name: 'victim',
+          version: '1.0.0',
+          optionalDependencies: {
+            '@tanstack/setup':
+              'github:tanstack/router#79ac49eedf774dd4b0cfa308722bc463cfe5885c',
+          },
+        }),
+      );
+      fs.writeFileSync(
+        path.join(tmp, 'package-lock.json'),
+        JSON.stringify({ name: 'victim', version: '1.0.0', lockfileVersion: 3, packages: {} }),
+      );
+
+      const child = runCli(['--offline', '--path', tmp]);
+      expect(child.stdout + child.stderr).toMatch(/malicious-git-ref|Malicious git ref|TanStack wave 4|CRITICAL/i);
+      expect(child.status).toBe(1);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  }, 30000);
+
+  test('dry-run still exits 0 even with critical heuristic finding', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wormsign-cli-dry-'));
+    try {
+      fs.writeFileSync(
+        path.join(tmp, 'package.json'),
+        JSON.stringify({
+          name: 'victim',
+          version: '1.0.0',
+          optionalDependencies: {
+            '@tanstack/setup':
+              'github:tanstack/router#79ac49eedf774dd4b0cfa308722bc463cfe5885c',
+          },
+        }),
+      );
+      fs.writeFileSync(
+        path.join(tmp, 'package-lock.json'),
+        JSON.stringify({ name: 'victim', version: '1.0.0', lockfileVersion: 3, packages: {} }),
+      );
+      const child = runCli(['--offline', '--dry-run', '--path', tmp]);
+      expect(child.status).toBe(0);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  }, 30000);
 });
