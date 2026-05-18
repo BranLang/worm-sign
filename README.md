@@ -7,7 +7,15 @@
 
 > "We have wormsign the likes of which even God has never seen."
 
-**Worm Sign** is a security scanner that detects npm packages compromised by supply chain attacks. It scans your project's `package.json` and lockfiles against **1,813+ known compromised packages** using hash verification, signature matching, and behavioral heuristics.
+**Worm Sign** is a static-analysis scanner that finds npm supply-chain worms in your `package.json` and lockfile — focused on what `npm audit` misses: install-time manifest tampering, dropped-file hashes, campaign IOC strings, and suspicious binary-fetch hosts.
+
+### Coverage in numbers
+
+- **~100 currently-actionable IOCs** across the three active campaigns covered (TanStack wave 4, Axios, Shai-Hulud 2.0).
+- **~1,700 historical Shai-Hulud entries** also bundled for archival/forensic scans. Most of these versions have already been unpublished from npm; their value is in detecting old `package-lock.json` files that were committed before the unpublish.
+- **17 heuristic rules** covering script-level patterns (network calls, code obfuscation, reverse shells, RAT droppers), manifest tampering (malicious git refs, phantom `optionalDependencies`, commit-pinned deps), and install-time vectors (non-standard `binary.host`).
+
+The package count alone isn't a strong differentiator — `npm audit` already covers the GHSA-listed name@versions. Worm Sign's value is the **heuristic layer** that catches install-time vectors before they're catalogued.
 
 > **Now detecting the [May 2026 TanStack supply chain attack](#tanstack-supply-chain-attack-may-2026)** — the fourth wave of the Shai-Hulud worm, which republished 42 `@tanstack/*` packages (84 versions) with valid SLSA provenance after extracting an OIDC token via GitHub Actions cache poisoning.
 
@@ -46,8 +54,10 @@ Worm Sign detects this attack through multiple layers:
 ## Features
 
 - **Safe Static Analysis**: Uses `@npmcli/arborist` to inspect the dependency tree without executing any lifecycle scripts — the malware never gets a chance to run.
-- **Multi-Campaign Detection**: Covers the TanStack wave 4 attack (May 2026), the Axios supply chain attack (March 2026), and the Shai-Hulud malware campaign (1,717+ packages).
+- **Multi-Campaign Detection**: TanStack wave 4 (May 2026), Axios (March 2026), and the broader Shai-Hulud archive.
 - **Manifest Tampering Detection**: Flags malicious `optionalDependencies` entries and commit-pinned git refs used to smuggle payloads (the TanStack wave 4 vector).
+- **Install-Time Binary Fetch Detection**: Flags `package.json` `binary.host` pointing at non-standard domains — install-time binaries are not covered by lockfile integrity hashes.
+- **FP-Tested Heuristics**: All script-level rules have negative tests (`tests/unit.test.ts`) asserting they do NOT fire on common benign inputs (RFC1918 IPs, `curl --version`, `bun run`, JWT-like strings, etc.).
 - **Hash-Based Detection**: Verifies packages by integrity hash (SHA-1/SHA-512), catching variants even if renamed or version-spoofed.
 - **Heuristic Analysis**: Scans `package.json` scripts for suspicious patterns — RAT droppers, `curl | bash`, reverse shells, XOR obfuscation, self-deleting scripts, and more.
 - **Entropy Analysis**: Detects high-entropy files (>5MB) that indicate packed/obfuscated malware payloads.

