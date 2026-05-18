@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.2.0] - 2026-05-18
+
+### Added
+
+- **`binary-host-unknown` heuristic**: flags `package.json` `binary.host` pointing at a domain outside a curated allowlist of common legit prebuilt-binary hosts (github, githubusercontent, npmjs, nodejs, jsdelivr, unpkg, cloudfront, amazonaws, mapbox, microsoft). `node-pre-gyp` and `prebuild-install` fetch binaries at install time that are NOT covered by lockfile integrity, so an attacker-controlled `binary.host` is a direct code-exec channel. Severity: medium.
+- **Negative-fixture test suite** (`tests/unit.test.ts`, `Heuristic false-positive resistance`): each tightened heuristic has a benign-input test asserting it does NOT fire. Covers RFC1918/loopback/CGNAT/docs IPs, semver-in-identifier, `curl --version`, `wget --help`, JWT-like strings, hash-like strings, `xorBuffer` function names, `node -e` documentation, `bun run`, `nc --help`.
+- **`KNOWN_BAD_GIT_REFS` exported from generated signatures**: the bad-commit list moved from `src/analysis.ts` into `src/generated/signatures.ts` so all signature data is consolidated in one transparency-audit-friendly file.
+
+### Changed
+
+- **Tightened FP-prone heuristic patterns** in `analyzeScripts`:
+  - `network-request` now requires a URL on the same line (was: any `curl`/`wget` occurrence).
+  - `base64-string` now requires `=` padding and 80+ chars (was: 60 chars, no padding).
+  - `ip-address` now excludes RFC1918, loopback, link-local, multicast, CGNAT, RFC5737-docs, broadcast, and digit/hyphen adjacency (was: any 4-octet sequence — flagged `192.168.1.1`, `127.0.0.1`, `build-1.2.3.4-rc`).
+  - `inline-exec` requires a following quoted expression (was: any `node -e` / `bash -c` mention).
+  - `xor-obfuscation` now only matches the `String.fromCharCode(...^N)` deobfuscation idiom (was: any lowercase `xor` substring — flagged function names like `xorBuffer`).
+  - `destructive-rm`, `netcat-shell`, `pipe-to-bash`, `execsync-nohup`, `self-deleting-script`, `powershell-remote-exec`, `eval-usage`: added word boundaries to reduce identifier-collision FPs.
+- **README**: replaced the marketing-number "1,813+ packages" lead with an honest split — ~100 currently-actionable IOCs across active campaigns + ~1,700 historical Shai-Hulud entries useful for forensics on old lockfiles.
+
 ## [4.1.0] - 2026-05-18
 
 ### Added
