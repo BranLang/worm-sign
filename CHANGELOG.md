@@ -1,5 +1,27 @@
 # Changelog
 
+## [4.1.0] - 2026-05-18
+
+### Added
+
+- **TanStack Wave 4 Detection (May 2026)**: Full coverage for the May 11, 2026 TanStack supply chain attack (CVE-2026-45321 / GHSA-g7cv-rxg3-hmpx), republished by attacker group TeamPCP via GitHub Actions cache poisoning and OIDC token theft.
+  - **84 Compromised Versions**: All 42 affected `@tanstack/*` packages × 2 versions each added to `sources/known-threats.csv`, plus secondary victim `@mistralai/mistralai@2.2.2–2.2.4`.
+  - **Payload Hashes (SHA-256)**: Added `ab4fcadaec49c03278063dd269ea5eef82d24f2124a8e15d7b90f2fa8601266c` (`router_init.js`) and `2ec78d556d696e208927cc503d48e4b5eb56b31abc2870c2ed2e98d6be27fc96` (`tanstack_runner.js`). New `TANSTACK_MALWARE_HASHES` export.
+  - **Malware Filenames**: `router_init.js`, `tanstack_runner.js`, `router_runtime.js`, `gh-token-monitor.sh`, `gh-token-monitor.service`, `com.user.gh-token-monitor.plist`.
+  - **Campaign Strings**: `EveryBoiWeBuildIsAWormyBoi`, `IfYouRevokeThisTokenItWillWipeTheComputerOfTheOwner`, `OhNoWhatsGoingOnWithGitHub`, `svksjrhjkcejg` (PBKDF2 salt), `0c0e873033875f1bc471eda37e3b9d0f9b89bd41a4bbb4f86746caa2186c40aa` (master key), `__DAEMONIZED`.
+  - **C2 Infrastructure**: `filev2.getsession.org`, `api.masscan.cloud`, `git-tanstack.com`, `litter.catbox.moe/h8nc9u.js`, `litter.catbox.moe/7rrc6l.mjs`.
+  - **Worm Forensics**: `dependabout/` branch impersonation pattern and the `claude@users.noreply.github.com` spoofed commit author.
+- **Manifest Tampering Heuristic** (`analyzeManifest`): New analyzer inspects `dependencies`, `devDependencies`, `optionalDependencies`, `peerDependencies`, and `bundleDependencies` for the patterns used by the TanStack worm.
+  - `malicious-git-ref`: Flags entries pinning the known-bad commit `79ac49eedf774dd4b0cfa308722bc463cfe5885c` (full or truncated). Severity: critical.
+  - `tanstack-setup-phantom-dep`: Flags `@tanstack/setup` in `optionalDependencies`. Severity: critical.
+  - `commit-pinned-optional-dep`: Flags any `optionalDependencies` entry pinning a 40-char git commit hash. Severity: high.
+
+### Changed
+
+- **Package Count**: 1,727 → 1,813 versioned entries in `sources/known-threats.csv` (+86: 84 TanStack + 3 Mistral, with one overlap deduplicated).
+- **README**: New "TanStack Supply Chain Attack (May 2026)" section leading the document.
+- **Features list**: Now reflects multi-campaign coverage (TanStack + Axios + Shai-Hulud) and the new manifest-tampering detection layer.
+
 ## [4.0.0] - 2026-04-01
 
 ### Added

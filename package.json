@@ -1,7 +1,7 @@
 {
   "name": "worm-sign",
-  "version": "4.0.0",
-  "description": "A security scanner that detects npm packages compromised by supply chain attacks, including the Axios attack (March 2026) and Shai Hulud malware.",
+  "version": "4.1.0",
+  "description": "A security scanner that detects npm packages compromised by supply chain attacks, including the TanStack wave 4 attack (May 2026), the Axios attack (March 2026), and Shai-Hulud malware.",
   "main": "dist/src/index.js",
   "bin": {
     "worm-sign": "dist/bin/scan.js"

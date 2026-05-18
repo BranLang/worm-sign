@@ -7,9 +7,27 @@
 
 > "We have wormsign the likes of which even God has never seen."
 
-**Worm Sign** is a security scanner that detects npm packages compromised by supply chain attacks. It scans your project's `package.json` and lockfiles against **1,726+ known compromised packages** using hash verification, signature matching, and behavioral heuristics.
+**Worm Sign** is a security scanner that detects npm packages compromised by supply chain attacks. It scans your project's `package.json` and lockfiles against **1,813+ known compromised packages** using hash verification, signature matching, and behavioral heuristics.
 
-> **Now detecting the [March 2026 Axios supply chain attack](#axios-supply-chain-attack-march-2026)** — the compromised `axios` versions that deployed a cross-platform RAT to 83M+ weekly downloaders.
+> **Now detecting the [May 2026 TanStack supply chain attack](#tanstack-supply-chain-attack-may-2026)** — the fourth wave of the Shai-Hulud worm, which republished 42 `@tanstack/*` packages (84 versions) with valid SLSA provenance after extracting an OIDC token via GitHub Actions cache poisoning.
+
+## TanStack Supply Chain Attack (May 2026)
+
+On May 11, 2026, attacker group **TeamPCP** poisoned the `tanstack/router` GitHub Actions cache via a fork pull request, extracted the legitimate OIDC publishing token, and republished 42 `@tanstack/*` packages with malware — **producing valid SLSA Build Level 3 attestations**. The worm then propagated to 170+ secondary victim packages (including `@mistralai/mistralai`, `@uipath/*`, `@draftlab/*`, `@squawk/*`, `safe-action`, `cmux-agent-mcp`, `nextmove-mcp`, `ts-dna`, `cross-stitch`).
+
+Tracked as **CVE-2026-45321** / **GHSA-g7cv-rxg3-hmpx**.
+
+**If you installed any `@tanstack/*` package between 11:29 UTC and 19:15 UTC on May 11, 2026, run `worm-sign` immediately.**
+
+Worm Sign detects this attack through multiple layers:
+
+- **84 Compromised Versions**: All 42 affected `@tanstack/*` packages × 2 versions each from GHSA-g7cv-rxg3-hmpx, plus secondary victim `@mistralai/mistralai@2.2.2–2.2.4`.
+- **Payload Hashes**: SHA-256 verification of `router_init.js` (`ab4fcadaec…`) and `tanstack_runner.js` (`2ec78d556d…`).
+- **Manifest Tampering**: New `analyzeManifest` heuristic flags the malicious `optionalDependencies` entry `"@tanstack/setup": "github:tanstack/router#79ac49eedf…"`, including the truncated form and any commit-pinned git ref in `optionalDependencies`.
+- **Campaign Strings**: Detects `EveryBoiWeBuildIsAWormyBoi` (campaign ID), `IfYouRevokeThisTokenItWillWipeTheComputerOfTheOwner` (dead-man's-switch trigger that runs `rm -rf ~/` on token revocation), `OhNoWhatsGoingOnWithGitHub` (token-recovery magic string), and the unique PBKDF2 salt `svksjrhjkcejg`.
+- **C2 Infrastructure**: Detects `filev2.getsession.org`, `api.masscan.cloud`, `git-tanstack.com`, and second-stage payload URLs at `litter.catbox.moe/h8nc9u.js` / `litter.catbox.moe/7rrc6l.mjs`.
+- **Persistence Files**: Flags dropped files `router_init.js`, `tanstack_runner.js`, `router_runtime.js`, `gh-token-monitor.sh`, `gh-token-monitor.service`, and `com.user.gh-token-monitor.plist`.
+- **Worm Forensics**: Detects `dependabout/` branch impersonation and `claude@users.noreply.github.com` spoofed commit author used by the worm to push exfiltration commits.
 
 ## Axios Supply Chain Attack (March 2026)
 
@@ -28,7 +46,8 @@ Worm Sign detects this attack through multiple layers:
 ## Features
 
 - **Safe Static Analysis**: Uses `@npmcli/arborist` to inspect the dependency tree without executing any lifecycle scripts — the malware never gets a chance to run.
-- **Multi-Campaign Detection**: Covers the Axios supply chain attack (March 2026) and the Shai Hulud malware campaign (1,717+ packages).
+- **Multi-Campaign Detection**: Covers the TanStack wave 4 attack (May 2026), the Axios supply chain attack (March 2026), and the Shai-Hulud malware campaign (1,717+ packages).
+- **Manifest Tampering Detection**: Flags malicious `optionalDependencies` entries and commit-pinned git refs used to smuggle payloads (the TanStack wave 4 vector).
 - **Hash-Based Detection**: Verifies packages by integrity hash (SHA-1/SHA-512), catching variants even if renamed or version-spoofed.
 - **Heuristic Analysis**: Scans `package.json` scripts for suspicious patterns — RAT droppers, `curl | bash`, reverse shells, XOR obfuscation, self-deleting scripts, and more.
 - **Entropy Analysis**: Detects high-entropy files (>5MB) that indicate packed/obfuscated malware payloads.
@@ -254,6 +273,10 @@ worm-sign --debug
 ## Acknowledgements
 
 Threat intelligence is aggregated from the security research community, including:
+
+**TanStack Attack (Wave 4):**
+- [Snyk — TanStack npm Packages Compromised](https://snyk.io/blog/tanstack-npm-packages-compromised/)
+- [GHSA-g7cv-rxg3-hmpx](https://github.com/advisories/GHSA-g7cv-rxg3-hmpx)
 
 **Axios Attack:**
 - [Socket.dev — Axios Compromise Analysis](https://socket.dev/blog/axios-npm-package-compromised)
