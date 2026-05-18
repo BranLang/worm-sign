@@ -6,6 +6,11 @@ import { isHighEntropy } from './heuristics/entropy';
  */
 interface PackageJson {
   scripts?: Record<string, string>;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  bundleDependencies?: string[] | Record<string, string>;
   [key: string]: unknown;
 }
 
@@ -125,6 +130,89 @@ export function analyzeScripts(pkgJson: PackageJson, config?: WormSignConfig): F
           findings.push({
             message: `Suspicious script detected in '${name}': Known Malware Signature Match`,
             severity: 'critical',
+            ruleId,
+            file: 'package.json',
+          });
+        }
+      }
+    }
+  }
+
+  return findings;
+}
+
+// Known-malicious git refs used by supply-chain worms to smuggle payloads via
+// `optionalDependencies` / `dependencies`. The TanStack wave 4 (May 2026) attack
+// pinned this orphan commit on `tanstack/router` to deliver router_init.js.
+const KNOWN_BAD_GIT_REFS = [
+  '79ac49eedf774dd4b0cfa308722bc463cfe5885c',
+  '79ac49eedf', // truncated form commonly used in package.json
+];
+
+const DEP_SECTIONS = [
+  'dependencies',
+  'devDependencies',
+  'optionalDependencies',
+  'peerDependencies',
+  'bundleDependencies',
+] as const;
+
+/**
+ * Analyzes package.json manifest fields (dependencies, optionalDependencies, etc.)
+ * for tampering patterns used by supply-chain worms — particularly the TanStack
+ * wave 4 attack, which smuggles its payload via an optionalDependencies entry
+ * pointing at an orphan git commit rather than via lifecycle scripts.
+ */
+export function analyzeManifest(pkgJson: PackageJson, config?: WormSignConfig): Finding[] {
+  const findings: Finding[] = [];
+  const suppressed = new Set(config?.suppressedRules || []);
+
+  for (const section of DEP_SECTIONS) {
+    const deps = pkgJson[section];
+    if (!deps || Array.isArray(deps)) continue;
+    for (const [depName, depSpec] of Object.entries(deps as Record<string, string>)) {
+      if (typeof depSpec !== 'string') continue;
+
+      // 1. Exact known-bad git refs (TanStack wave 4 orphan commit)
+      for (const badRef of KNOWN_BAD_GIT_REFS) {
+        if (depSpec.includes(badRef)) {
+          const ruleId = 'malicious-git-ref';
+          if (!suppressed.has(ruleId)) {
+            findings.push({
+              message: `Malicious git ref in ${section}.${depName}: pinned to known-bad commit '${badRef}' (TanStack wave 4 / GHSA-g7cv-rxg3-hmpx)`,
+              severity: 'critical',
+              ruleId,
+              file: 'package.json',
+            });
+          }
+        }
+      }
+
+      // 2. The exact phantom dep name used by the TanStack worm
+      if (depName === '@tanstack/setup' && section === 'optionalDependencies') {
+        const ruleId = 'tanstack-setup-phantom-dep';
+        if (!suppressed.has(ruleId)) {
+          findings.push({
+            message: `Phantom dependency '@tanstack/setup' in optionalDependencies — TanStack wave 4 (GHSA-g7cv-rxg3-hmpx) installation vector`,
+            severity: 'critical',
+            ruleId,
+            file: 'package.json',
+          });
+        }
+      }
+
+      // 3. Generic suspicious git: refs pinning a 40-char commit on a 3rd-party namespace
+      //    inside optionalDependencies — a common worm-installation pattern.
+      if (
+        section === 'optionalDependencies' &&
+        /^(github:|git\+|git:)/i.test(depSpec) &&
+        /[#@][a-f0-9]{40}\b/.test(depSpec)
+      ) {
+        const ruleId = 'commit-pinned-optional-dep';
+        if (!suppressed.has(ruleId)) {
+          findings.push({
+            message: `Suspicious commit-pinned git dependency in optionalDependencies.${depName}: '${depSpec}' (review carefully — this pattern is used by supply-chain worms)`,
+            severity: 'high',
             ruleId,
             file: 'package.json',
           });

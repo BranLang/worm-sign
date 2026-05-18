@@ -5,10 +5,14 @@ import * as https from 'https';
 import { IncomingMessage } from 'http';
 
 import Arborist from '@npmcli/arborist';
-import { analyzeScripts } from './analysis';
-export { analyzeScripts };
+import { analyzeScripts, analyzeManifest } from './analysis';
+export { analyzeScripts, analyzeManifest };
 import { EntropyCalculator } from './heuristics/entropy';
-import { MALWARE_FILENAMES, AXIOS_MALWARE_HASHES } from './generated/signatures';
+import {
+  MALWARE_FILENAMES,
+  AXIOS_MALWARE_HASHES,
+  TANSTACK_MALWARE_HASHES,
+} from './generated/signatures';
 import { CompromisedPackage, ScanMatch } from './types';
 import { validateUrl } from './utils/validators';
 
@@ -289,6 +293,11 @@ export async function scanProject(
   // Backwards compatibility: push messages to warnings
   scriptFindings.forEach((f) => allWarnings.push(f.message));
 
+  // 1b. Analyze Manifest for dependency-injection tampering (TanStack wave 4 style)
+  const manifestFindings = analyzeManifest(packageJson, options?.config);
+  allFindings.push(...manifestFindings);
+  manifestFindings.forEach((f) => allWarnings.push(f.message));
+
   // 2. Check for known malware files in root
   const KNOWN_MALWARE_HASHES = new Set([
     // Shai-Hulud 2.0
@@ -298,6 +307,8 @@ export async function scanProject(
     'f099c5d9ec417d4445a0328ac0ada9cde79fc37410914103ae9c609cbc0ee068', // bun_environment.js
     // Axios supply chain attack (March 2026) - stage-2 payloads
     ...AXIOS_MALWARE_HASHES,
+    // TanStack wave 4 (May 2026, GHSA-g7cv-rxg3-hmpx) - router_init.js / tanstack_runner.js
+    ...TANSTACK_MALWARE_HASHES,
   ]);
 
   for (const file of MALWARE_FILENAMES) {
@@ -328,7 +339,9 @@ export async function scanProject(
 
         const campaign = AXIOS_MALWARE_HASHES.has(finalHash)
           ? 'Axios supply chain attack'
-          : 'Shai Hulud';
+          : TANSTACK_MALWARE_HASHES.has(finalHash)
+            ? 'TanStack wave 4 (GHSA-g7cv-rxg3-hmpx)'
+            : 'Shai Hulud';
 
         if (KNOWN_MALWARE_HASHES.has(finalHash)) {
           allWarnings.push(
