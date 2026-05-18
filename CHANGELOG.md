@@ -2,6 +2,18 @@
 
 ## [4.2.0] - 2026-05-18
 
+### Deprecation policy
+
+Old releases on npm will be marked `deprecated` via `scripts/deprecate-old-versions.sh`:
+
+- **1.x** — pre-Arborist, no campaign coverage. Functionally unsafe.
+- **2.x** — legacy lockfile parsers, scanning could trigger lifecycle scripts in edge cases.
+- **3.x** — Arborist-based but missing Axios (Mar 2026) and TanStack wave 4 (May 2026) coverage.
+- **4.0.0** — missing TanStack wave 4 coverage (GHSA-g7cv-rxg3-hmpx).
+- **4.1.0** — had a CLI exit-code bug where critical heuristic findings could exit 0 without a package-name match. Will be marked deprecated once 4.2.0 publishes.
+
+A scanner that misses an active campaign gives a false sense of safety; deprecating old versions is part of the contract for a security tool.
+
 ### Added
 
 - **`binary-host-unknown` heuristic**: flags `package.json` `binary.host` pointing at a domain outside a curated allowlist of common legit prebuilt-binary hosts (github, githubusercontent, npmjs, nodejs, jsdelivr, unpkg, cloudfront, amazonaws, mapbox, microsoft). `node-pre-gyp` and `prebuild-install` fetch binaries at install time that are NOT covered by lockfile integrity, so an attacker-controlled `binary.host` is a direct code-exec channel. Severity: medium.
